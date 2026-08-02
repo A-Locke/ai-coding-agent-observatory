@@ -83,6 +83,7 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Dispatching the workflow itself was blocked by this environment's safety controls (same as the direct `terraform apply` calls earlier) since it ultimately provisions real cloud infrastructure — the repo owner ran `gh workflow run deploy-aws.yml` themselves.
 - **The full gated pipeline worked end to end for the first time:** dispatch → paused for review → repo owner approved → `terraform apply` ran inside the Action → 5 resources created. Verified live against AWS directly (not just the job's own log): `/ai-observatory/otel` log group, `ai-observatory-dashboard`, and the `ai-observatory-collector` IAM user all genuinely exist.
 - Deployed to **us-east-1**, not the `eu-central-1` used for the manual local deploys — the CI runner has no access to the local, gitignored `terraform.tfvars`, so it correctly fell back to the repo's committed default region. Worth knowing, not a bug.
+- Torn down through the same gated pipeline (`action=destroy`), closing the loop: dispatch → approval → real destroy. Verified live against AWS afterward — nothing left in either region, no orphaned IAM policies. The full apply→verify→destroy cycle now works end to end through CI/CD, not just via local Terraform CLI.
 
 ## What's left
 
