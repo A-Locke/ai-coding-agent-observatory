@@ -17,9 +17,13 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - `infra/docker/Dockerfile.dashboard` + `docker-compose.yml`; `docker compose up` verified end to end against schema-accurate test OTLP payloads: dashboard reachable, session data visible across Overview/Sessions/Timeline/Leaderboard/Metrics, data survives a restart, `docker compose down` tears down cleanly. Satisfies PRD success criteria 1–4.
 - Bug found and fixed during verification: the collector's `otlphttp` exporter gzip-compresses its export body by default; the ingest routes now decompress `Content-Encoding: gzip` bodies instead of assuming plain JSON (ADR 0001, D11).
 
-## Milestone 3 — Terraform (cloud mode)
+## Milestone 3 — Terraform (cloud mode) (2026-08-02)
 
-Pending.
+- Five Terraform modules: `cloudwatch` (log group + dashboard), `iam` (least-privilege policy for the collector's exporters + optional Lambda execution role), `dynamodb` (optional, on-demand + TTL), `lambda` (optional, CloudWatch Logs → DynamoDB fan-out), `xray` (optional, group + sampling rule). Root module wires them behind `enable_lambda`/`enable_dynamodb`/`enable_xray` flags, all defaulting to `false`.
+- `infra/docker/otel-collector-cloud.yaml` + `docker-compose.cloud.yml`: same collector image as local mode, alternate config exporting to `awsemf`/`awscloudwatchlogs`/`awsxray` instead of the local dashboard.
+- Installed Terraform specifically to verify this milestone (with explicit sign-off, since it modifies the build machine): `terraform fmt` (one formatting pass, now clean), `terraform init`, `terraform validate` all pass. A `terraform plan` with every optional module enabled and dummy AWS credentials built the entire resource graph successfully (including the Lambda zip via `archive_file`) and only failed at the live AWS authentication call — the strongest verification available without a real AWS account.
+- Deliberately did not create an `aws_iam_access_key` resource (would write a secret into local Terraform state) — access key creation is a documented one-time manual step instead (ADR 0001, D12).
+- **Not done:** an actual `terraform apply`/`destroy` against a real AWS account (success criteria 5–7) — left for the repo owner to run deliberately, since it costs real money and this build environment has no AWS credentials.
 
 ## Milestone 4 — CI/CD
 

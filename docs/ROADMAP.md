@@ -72,16 +72,16 @@ Goal: `docker compose up` actually works, end to end, with a real agent.
 
 Acceptance: success criteria 1–4 from the PRD are met against this repository as cloned. **Met.** Verification used hand-built OTLP payloads (not a live agent CLI, which wasn't available in the build environment) — the payloads matched each vendor's real, documented schema exactly, so this exercises the identical code path a real agent would.
 
-## Phase 7 — Terraform: Cloud Mode ⬜
+## Phase 7 — Terraform: Cloud Mode ✅ (written and validated; not yet applied)
 
 Goal: `infra/terraform` modules for the optional AWS path, written and `fmt`/`validate`-clean, not yet applied against a real account.
 
-- [ ] Modules: `cloudwatch` (log group + dashboard), `iam` (least-privilege policy for the collector's AWS exporters + Lambda execution role), `lambda` (optional, log-subscription → DynamoDB), `dynamodb` (optional), `xray` (optional)
-- [ ] Root module wiring with `enable_lambda` / `enable_dynamodb` / `enable_xray` feature flags, `terraform.tfvars.example`
-- [ ] `infra/docker/otel-collector-cloud.yaml`: adds `awsemf` + `awsxray` exporters to the same collector config
-- [ ] `docker-compose.cloud.yml` overlay wiring AWS credential env vars into the collector
+- [x] Modules: `cloudwatch` (log group + dashboard), `iam` (least-privilege policy for the collector's AWS exporters + Lambda execution role — deliberately no `aws_iam_access_key` resource, see ADR), `lambda` (optional, log-subscription → DynamoDB), `dynamodb` (optional, on-demand billing + TTL), `xray` (optional, group + sampling rule)
+- [x] Root module wiring with `enable_lambda` / `enable_dynamodb` / `enable_xray` feature flags, `terraform.tfvars.example`
+- [x] `infra/docker/otel-collector-cloud.yaml`: adds `awsemf` + `awscloudwatchlogs` + `awsxray` exporters to the same collector config (ADR D8)
+- [x] `docker-compose.cloud.yml` standalone compose file wiring AWS credential env vars into the collector
 
-Acceptance: `terraform fmt -check` and `terraform validate` pass wherever a `terraform` binary is available; a documented manual follow-up (`terraform apply`, verify CloudWatch/X-Ray, `terraform destroy`) is recorded for the repo owner to execute against a real AWS account.
+Acceptance: `terraform fmt -check` and `terraform validate` pass wherever a `terraform` binary is available; a documented manual follow-up (`terraform apply`, verify CloudWatch/X-Ray, `terraform destroy`) is recorded for the repo owner to execute against a real AWS account. **Met** — Terraform was installed for this milestone specifically to verify the code: `terraform fmt -recursive` (clean after one formatting pass), `terraform init`, and `terraform validate` all pass. `terraform plan` with all optional modules enabled and dummy credentials built the full resource graph successfully (including the Lambda archive_file zip) and only failed at the live AWS STS auth call, as expected without real credentials — the strongest verification possible without an AWS account. **Still pending:** an actual `terraform apply` against a real AWS account, and `terraform destroy` afterward — left for the repo owner (success criteria 5–7).
 
 ## Phase 8 — CI/CD ⬜
 

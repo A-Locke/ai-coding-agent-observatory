@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars and adjust. All variables have sensible
+# low-cost defaults -- this file is only needed to change them.
+
+aws_region   = "us-east-1"
+project_name = "ai-observatory"
+
+log_retention_days = 14
+
+# Optional modules -- all default to false to keep `terraform apply` cheap
+# and fast. Enable individually to demo the fuller cloud path.
+enable_lambda   = false
+enable_dynamodb = false
+enable_xray     = false
+
+tags = {
+  Project   = "ai-coding-agent-observatory"
+  ManagedBy = "terraform"
+}

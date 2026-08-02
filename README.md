@@ -49,7 +49,21 @@ terraform init
 terraform apply
 ```
 
-Provisions CloudWatch (log group + dashboard) and IAM by default; Lambda, DynamoDB, and X-Ray are optional, feature-flagged modules (see `terraform.tfvars.example`). No EC2/ECS/EKS is ever created. Run `terraform destroy` when done.
+Provisions CloudWatch (log group + dashboard) and IAM by default; Lambda, DynamoDB, and X-Ray are optional, feature-flagged modules (see `terraform.tfvars.example`). No EC2/ECS/EKS is ever created.
+
+Then, one-time manual step (Terraform deliberately doesn't create this — see [ADR 0001, D12](docs/adr/0001-architecture-and-tech-stack.md#d12-no-aws_iam_access_key-resource--credentials-are-a-manual-step)):
+
+```bash
+aws iam create-access-key --user-name "$(terraform output -raw collector_iam_user_name)"
+```
+
+Put the resulting keys in `.env`, then run the cloud-mode collector and point an agent at it:
+
+```bash
+docker compose -f infra/docker/docker-compose.cloud.yml up
+```
+
+Run `terraform destroy` when done.
 
 ## Repository layout
 

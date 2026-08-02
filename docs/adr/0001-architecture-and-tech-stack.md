@@ -97,6 +97,14 @@ The AI Coding Agent Observatory ingests OpenTelemetry (OTel) telemetry from AI c
 
 **Consequences:** One extra dependency on Node's `node:zlib`, otherwise none — this is a strictly-more-correct version of body parsing with no downside.
 
+### D12: No `aws_iam_access_key` resource — credentials are a manual step
+
+**Decision:** The `iam` module creates a dedicated IAM user and least-privilege policy for the collector's cloud exporters, but does not create an `aws_iam_access_key` resource. The repo owner runs `aws iam create-access-key --user-name <output>` once, manually, after `apply`.
+
+**Why:** An `aws_iam_access_key` resource writes the secret access key into Terraform state in plaintext. That's a real risk even for a demo, and it's compounded here by D9's choice of local (unencrypted, easy-to-accidentally-commit) state. A manual `create-access-key` call costs one extra command and keeps the secret out of any file this project manages.
+
+**Consequences:** `terraform apply` alone doesn't produce working cloud-mode credentials — the README and Connect Agents guide call out the one manual command needed afterward.
+
 ## Consequences (Overall)
 
 **Positive:** Minimal moving parts for local mode; real, credible data; no native-module Docker cross-compilation risk; cloud mode is genuinely optional and genuinely cheap; every non-obvious choice above is traceable to a stated constraint (cost, DX, or the "real data" credibility goal).

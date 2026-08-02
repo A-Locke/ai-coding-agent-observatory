@@ -1,0 +1,22 @@
+# Cloud-mode collector: same image as local mode, exports directly to AWS
+# instead of forwarding to a local dashboard container (ADR 0001, D8).
+# Requires AWS credentials -- see .env.example and docs/CONNECT_AGENTS.md.
+#
+#   docker compose -f infra/docker/docker-compose.cloud.yml up
+#
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector-cloud.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set via terraform output collector_iam_user_name + aws iam create-access-key}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set via terraform output collector_iam_user_name + aws iam create-access-key}
+      CLOUDWATCH_LOG_GROUP: ${CLOUDWATCH_LOG_GROUP:-/ai-observatory/otel}
+      CLOUDWATCH_NAMESPACE: ${CLOUDWATCH_NAMESPACE:-AIObservatory}
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    restart: unless-stopped

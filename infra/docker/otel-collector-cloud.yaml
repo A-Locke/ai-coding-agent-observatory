@@ -1,0 +1,70 @@
+# Cloud-mode OpenTelemetry Collector config (ADR 0001, D8: same collector
+# binary as local mode, alternate config -- never deployed into AWS compute).
+# Requires AWS_REGION / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY /
+# CLOUDWATCH_LOG_GROUP / CLOUDWATCH_NAMESPACE in the environment (see
+# .env.example and `terraform output collector_iam_user_name`).
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 400
+    spike_limit_mib: 100
+  batch:
+    send_batch_size: 512
+    timeout: 2s
+
+exporters:
+  # CloudWatch Embedded Metric Format -- metric_name_selectors must match the
+  # widget metric names in infra/terraform/modules/cloudwatch/main.tf.
+  awsemf:
+    region: ${env:AWS_REGION}
+    namespace: ${env:CLOUDWATCH_NAMESPACE}
+    log_group_name: ${env:CLOUDWATCH_LOG_GROUP}
+    log_stream_name: otel-collector-metrics
+    dimension_rollup_option: NoDimensionRollup
+    metric_declarations:
+      - dimensions: [[]]
+        metric_name_selectors:
+          - "claude_code.cost.usage"
+          - "claude_code.token.usage"
+          - "gemini_cli.token.usage"
+          - "codex.turn.token_usage"
+
+  awscloudwatchlogs:
+    region: ${env:AWS_REGION}
+    log_group_name: ${env:CLOUDWATCH_LOG_GROUP}
+    log_stream_name: otel-collector-logs
+
+  awsxray:
+    region: ${env:AWS_REGION}
+
+  debug:
+    verbosity: basic
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [awsxray, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [awsemf, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [awscloudwatchlogs, debug]
