@@ -113,6 +113,18 @@ The AI Coding Agent Observatory ingests OpenTelemetry (OTel) telemetry from AI c
 
 **Consequences:** The GitHub Actions path is suitable for a single apply-then-destroy demo cycle. Running Terraform locally (where state is just a file on disk) remains the recommended path for anything beyond that, and is what the README leads with.
 
+### D14: `aws_iam_user.collector` sets `force_destroy = true`
+
+**Decision:** The collector's IAM user resource sets `force_destroy = true`.
+
+**Why:** Found during the first real `terraform destroy`: D12 deliberately creates the access key for this user out-of-band (`aws iam create-access-key`, not a Terraform resource), specifically to keep the secret out of state. But AWS refuses to delete an IAM user that still has an active access key attached, and Terraform has no record of a key it never created — so the default (`force_destroy = false`) makes `destroy` fail with `DeleteConflict` unless the key is deleted manually first. `force_destroy = true` tells AWS to clean up attached credentials as part of the delete, closing the gap D12 opened.
+
+**Consequences:** None negative — this only affects behavior at delete time, and deleting an access key along with the user that owns it is exactly what you want.
+
+### D15: `docker-compose.cloud.yml` needs an explicit `--env-file`
+
+**Finding, not really a decision — recorded so it isn't rediscovered the hard way again:** Docker Compose resolves `.env` relative to the compose file's own directory by default. Since `infra/docker/docker-compose.cloud.yml` lives in `infra/docker/` but this project's `.env` lives at the repo root, `docker compose -f infra/docker/docker-compose.cloud.yml up` silently fails to find `AWS_ACCESS_KEY_ID` etc. even though `.env` is right there at the root. Every command against this compose file needs `--env-file .env` (resolved relative to the current working directory, i.e. the repo root) — documented in the README's cloud-mode section.
+
 ## Consequences (Overall)
 
 **Positive:** Minimal moving parts for local mode; real, credible data; no native-module Docker cross-compilation risk; cloud mode is genuinely optional and genuinely cheap; every non-obvious choice above is traceable to a stated constraint (cost, DX, or the "real data" credibility goal).

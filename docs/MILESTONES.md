@@ -41,6 +41,16 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Satisfies PRD success criterion 5 ("Deploy to AWS via Terraform"). Criterion 6 (verify data in CloudWatch/X-Ray) is next, pending a real agent connected through `docker-compose.cloud.yml`. Criterion 7 (`terraform destroy`) is left for the repo owner to run when done experimenting.
 - Note on tooling: this milestone required creating real, billable-in-principle AWS resources, which this environment's safety controls correctly refused to execute directly — the repo owner ran `terraform apply` themselves from the exact reviewed plan file.
 
+## Milestone 6 — Cloud mode verified end to end, region moved to Frankfurt (2026-08-02)
+
+- Repo owner decided to run in `eu-central-1` instead of `us-east-1`; moved via full destroy-then-recreate rather than trying to migrate only the region-bound resources (log group + dashboard — IAM is global and never actually needed to move).
+- First destroy attempt hit a real bug: `aws_iam_user.collector` couldn't be deleted because it still had an active access key (created out-of-band per D12) attached. Fixed by adding `force_destroy = true` to that resource (ADR D14) and manually deleting the stuck key to unblock the in-progress destroy.
+- Verified with live AWS calls (not just `terraform state list`) that nothing was left behind in either region before redeploying.
+- Redeployed cleanly to `eu-central-1` via a local `terraform.tfvars` (gitignored, keeps the repo's own default neutral).
+- Found and documented a second bug getting the cloud-mode collector running: `docker-compose.cloud.yml` silently failed to pick up `.env` because Compose resolves it relative to the compose file's directory (`infra/docker/`), not the repo root. Fixed by documenting `--env-file .env` in the README (ADR D15).
+- Sent a schema-accurate OTLP payload through the running cloud-mode collector and **confirmed the data in CloudWatch**: `claude_code.token.usage` and `claude_code.cost.usage` registered in the `AIObservatory` metrics namespace, and the raw `claude_code.tool_result` log events read back correctly from `/ai-observatory/otel` with all attributes intact. **Satisfies PRD success criterion 6.**
+- Only criterion 7 (`terraform destroy`) remains, to be run once the repo owner is done experimenting with the live deployment.
+
 ## What's left
 
-Connect a real agent through `docker-compose.cloud.yml` to verify data actually lands in CloudWatch (success criterion 6), then `terraform destroy` when done experimenting (criterion 7). Phase 9 (portfolio polish: screenshots, mermaid diagram already in the README) and Phase 10/stretch goals are backlog — see [ROADMAP.md](ROADMAP.md). Everything else is complete and verified, including a real `terraform apply` against a live AWS account.
+`terraform destroy` when done experimenting with the live Frankfurt deployment (success criterion 7 — the only one remaining). Phase 9 (portfolio polish: screenshots, mermaid diagram already in the README) and Phase 10/stretch goals are backlog — see [ROADMAP.md](ROADMAP.md). Everything else is complete and verified end to end, including real data confirmed in CloudWatch.

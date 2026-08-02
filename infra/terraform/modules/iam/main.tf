@@ -3,9 +3,15 @@
 # write a long-lived secret into Terraform state, which is a real risk even
 # for a demo given local state (ADR 0001, D9). Create the key manually once:
 #   aws iam create-access-key --user-name <output.collector_user_name>
+#
+# force_destroy = true because that access key is created out-of-band (see
+# above) -- AWS refuses to delete a user with an active access key still
+# attached, and Terraform has no way to know about a key it didn't create.
+# Without this, `terraform destroy` fails with DeleteConflict.
 resource "aws_iam_user" "collector" {
-  name = "${var.project_name}-collector"
-  tags = var.tags
+  name          = "${var.project_name}-collector"
+  force_destroy = true
+  tags          = var.tags
 }
 
 data "aws_iam_policy_document" "collector_exporter" {

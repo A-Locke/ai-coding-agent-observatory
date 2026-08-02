@@ -57,13 +57,13 @@ Then, one-time manual step (Terraform deliberately doesn't create this — see [
 aws iam create-access-key --user-name "$(terraform output -raw collector_iam_user_name)"
 ```
 
-Put the resulting keys in `.env`, then run the cloud-mode collector and point an agent at it:
+Put the resulting keys in `.env`, then run the cloud-mode collector and point an agent at it. Note the explicit `--env-file`: Compose looks for `.env` next to the compose file (`infra/docker/`) by default, not the repo root where ours lives.
 
 ```bash
-docker compose -f infra/docker/docker-compose.cloud.yml up
+docker compose -f infra/docker/docker-compose.cloud.yml --env-file .env up
 ```
 
-Run `terraform destroy` when done.
+Run `terraform destroy` when done. To deploy to a different region than the `variables.tf` default (`us-east-1`), set it in a local `terraform.tfvars` (gitignored, copy from `terraform.tfvars.example`) rather than editing the default — keeps the repo's default neutral for other clones while letting your own deployment target wherever you want.
 
 ### Cost
 
@@ -113,4 +113,4 @@ npm test
 
 ## Status
 
-Local mode (Docker Compose, ingest pipeline, SQLite storage, all five dashboard pages) is built and verified end to end. Cloud mode has been deployed for real: `terraform apply` succeeded against a live AWS account (CloudWatch log group + dashboard, IAM policy/user). CI is confirmed green on GitHub Actions. Remaining: connect a real agent through cloud mode to verify data in CloudWatch, then `terraform destroy` when done. See [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped.
+Both local and cloud modes are built and verified end to end against real infrastructure — not just planned or dry-run. Cloud mode is currently live in `eu-central-1`; real telemetry has been confirmed landing in CloudWatch (metrics + logs). CI is confirmed green on GitHub Actions. The only thing left is `terraform destroy` once the repo owner is done experimenting. See [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped.
