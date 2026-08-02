@@ -97,7 +97,7 @@ Acceptance: workflows are syntactically valid and pass on this repo's own code; 
 
 Goal: make the finished repo easy to evaluate at a glance.
 
-- [ ] README screenshots/GIF of the dashboard with real data
+- [ ] README screenshots/GIF of the dashboard with real data — attempted during Milestone 6 (CloudWatch dashboard, log streams, custom metrics, IAM policy, all confirmed correct visually) but the pasted images only existed in that chat session's own storage, not as real files, so they were never actually saved to `docs/screenshots/`. Redo by saving screenshots to a file directly (not pasting into chat) next time this comes up, or accept the cost of a throwaway `terraform apply`/`destroy` cycle purely to retake them.
 - [ ] Architecture diagram (mermaid) in the README matching the PRD's local/cloud diagrams
 - [ ] Sweep for TODOs, dead code, and stale comments
 
