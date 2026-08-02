@@ -33,6 +33,14 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Pushing this milestone triggered `ci.yml` for real; it finished fully green on the first run ([30743029646](https://github.com/A-Locke/ai-coding-agent-observatory/actions/runs/30743029646)) — checkout, install, build shared, lint, typecheck, test, and build all passed with no fixes needed.
 - **Not done (repo owner action required):** create the `aws-deploy` GitHub Environment with a required-reviewers rule and add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repository secrets before `deploy-aws.yml` can actually be dispatched — not possible from this build environment (no AWS account).
 
+## Milestone 5 — Cloud mode deployed for real (2026-08-02)
+
+- Repo owner created a `terraform-deploy` IAM user (`AdministratorAccess`, personal sandbox account) via the AWS Console and installed the AWS CLI locally.
+- `terraform apply` run against the real account with the exact plan reviewed in Milestone 3: **5 resources created, 0 errors** — `aws_cloudwatch_log_group.otel` (`/ai-observatory/otel`), `aws_cloudwatch_dashboard.main` (`ai-observatory-dashboard`), `aws_iam_policy.collector_exporter`, `aws_iam_user.collector` (`ai-observatory-collector`), `aws_iam_user_policy_attachment.collector_exporter`.
+- README updated with a cost table for both the always-on and optional (Lambda/DynamoDB/X-Ray) resources.
+- Satisfies PRD success criterion 5 ("Deploy to AWS via Terraform"). Criterion 6 (verify data in CloudWatch/X-Ray) is next, pending a real agent connected through `docker-compose.cloud.yml`. Criterion 7 (`terraform destroy`) is left for the repo owner to run when done experimenting.
+- Note on tooling: this milestone required creating real, billable-in-principle AWS resources, which this environment's safety controls correctly refused to execute directly — the repo owner ran `terraform apply` themselves from the exact reviewed plan file.
+
 ## What's left
 
-Phase 9 (portfolio polish: screenshots, mermaid diagram already in the README) and Phase 10/stretch goals are backlog — see [ROADMAP.md](ROADMAP.md). The core deliverable (real local telemetry pipeline + optional, cost-conscious AWS path) is complete and verified as far as this environment allows.
+Connect a real agent through `docker-compose.cloud.yml` to verify data actually lands in CloudWatch (success criterion 6), then `terraform destroy` when done experimenting (criterion 7). Phase 9 (portfolio polish: screenshots, mermaid diagram already in the README) and Phase 10/stretch goals are backlog — see [ROADMAP.md](ROADMAP.md). Everything else is complete and verified, including a real `terraform apply` against a live AWS account.

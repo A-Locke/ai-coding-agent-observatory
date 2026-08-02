@@ -113,4 +113,4 @@ npm test
 
 ## Status
 
-Local mode (Docker Compose, ingest pipeline, SQLite storage, all five dashboard pages) is built and verified end to end. Terraform for optional cloud mode is written and validated (`fmt`/`init`/`validate`/`plan` all pass; not yet `apply`'d against a real AWS account). CI/CD workflows are written and YAML-validated; not yet confirmed green on GitHub. See [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped and what's left for the repo owner.
+Local mode (Docker Compose, ingest pipeline, SQLite storage, all five dashboard pages) is built and verified end to end. Cloud mode has been deployed for real: `terraform apply` succeeded against a live AWS account (CloudWatch log group + dashboard, IAM policy/user). CI is confirmed green on GitHub Actions. Remaining: connect a real agent through cloud mode to verify data in CloudWatch, then `terraform destroy` when done. See [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped.
