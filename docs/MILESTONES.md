@@ -60,6 +60,12 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - `terraform destroy` confirmed complete for the AWS side (success criterion 7 — the last one).
 - **`~/.claude/settings.json` was configured for real and a genuine Claude Code session connected to the local collector for the first time** — the first data point in this project that isn't fabricated for testing. Initially showed "unknown model" and $0.00, which led to finding the same class of bug just fixed for Gemini/Codex, missed on Claude Code's own adapter: `claude_code.token.usage` (which arrives before `claude_code.cost.usage` on the first export interval) never had its `model` attribute extracted. Fixed; the live session now shows correctly (`claude-sonnet-5`, real accumulating cost, `Success` status).
 
+## Milestone 8 — README screenshots, for real this time (2026-08-02)
+
+- The Milestone 6 attempt at AWS console screenshots failed because pasted chat images aren't real files. This time the repo owner saved 5 screenshots as actual files in `docs/screenshots/`, so they could be renamed and committed properly: `overview.png`, `sessions.png`, `timeline.png`, `metrics.png`, `leaderboard.png`.
+- All five show the genuine connected Claude Code session from Milestone 7 — real session ID, real model names (`claude-sonnet-5`, `claude-haiku-4-5-20251001` on a subagent call), real event sequence (`mcp_server_connection`, `user_prompt`, `api_request`, `assistant_response`, `tool_decision`, `tool_result`). No prompt or tool content is visible, confirming the privacy-by-default posture (`OTEL_LOG_USER_PROMPTS`/`OTEL_LOG_TOOL_DETAILS` unset) works as designed.
+- Wired into the README's Dashboard section with a caption noting explicitly that this is real, not fabricated, data.
+
 ## What's left
 
-All 7 PRD success criteria are now met, including with genuinely real (not synthetic) local telemetry. Phase 9 (portfolio polish: screenshots — still blocked on a real file-saving method, mermaid diagram already in the README) and Phase 10/stretch goals are backlog — see [ROADMAP.md](ROADMAP.md).
+All 7 PRD success criteria are met, including with genuinely real (not synthetic) local telemetry, and the README now shows real screenshots of it. Remaining backlog: a TODO/dead-code sweep (Phase 9) and Phase 10 stretch goals — see [ROADMAP.md](ROADMAP.md).

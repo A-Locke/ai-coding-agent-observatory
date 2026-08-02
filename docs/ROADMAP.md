@@ -93,12 +93,12 @@ Goal: GitHub Actions gates matching the PRD's FR-17–19.
 
 Acceptance: workflows are syntactically valid and pass on this repo's own code; a note is left for the repo owner that the Environment's required-reviewers protection rule is a one-time manual GitHub settings step, not something the workflow YAML itself can configure. **Met** — pushing Milestone 4 triggered `ci.yml` for real on GitHub Actions and it finished fully green (checkout → setup-node → install → build shared → lint → typecheck → test → build, [run 30743029646](https://github.com/A-Locke/ai-coding-agent-observatory/actions/runs/30743029646)). `terraform.yml` is path-filtered to `infra/terraform/**` and correctly did not trigger on this push (no changes there). **Still outstanding (repo owner action):** create the `aws-deploy` GitHub Environment with a required-reviewers rule, and add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repo secrets before `deploy-aws.yml` can actually be dispatched.
 
-## Phase 9 — Portfolio Polish ⬜
+## Phase 9 — Portfolio Polish 🚧
 
 Goal: make the finished repo easy to evaluate at a glance.
 
-- [ ] README screenshots/GIF of the dashboard with real data — attempted during Milestone 6 (CloudWatch dashboard, log streams, custom metrics, IAM policy, all confirmed correct visually) but the pasted images only existed in that chat session's own storage, not as real files, so they were never actually saved to `docs/screenshots/`. Redo by saving screenshots to a file directly (not pasting into chat) next time this comes up, or accept the cost of a throwaway `terraform apply`/`destroy` cycle purely to retake them.
-- [ ] Architecture diagram (mermaid) in the README matching the PRD's local/cloud diagrams
+- [x] README screenshots of the dashboard with real data — done in Milestone 8, using actual saved files this time (the Milestone 6 AWS console screenshots are still lost; not worth a throwaway `terraform apply`/`destroy` cycle just to retake those). Local dashboard screenshots (Overview, Sessions, Timeline, Metrics, Leaderboard) show a genuine connected Claude Code session, not fabricated data.
+- [x] Architecture diagram (mermaid) in the README — one unified diagram covering both local flow and the optional cloud branch, rather than two separate diagrams; covers the same ground as the PRD's local/cloud ASCII diagrams
 - [ ] Sweep for TODOs, dead code, and stale comments
 
 ## Phase 10 — Stretch Goals 🧊 (backlog, not planned for v1)

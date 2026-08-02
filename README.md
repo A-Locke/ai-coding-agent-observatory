@@ -41,6 +41,23 @@ Open [http://localhost:3000](http://localhost:3000). Then connect a real agent �
 - **Metrics** — latency, cost, and token charts
 - **Leaderboard** — agents/models ranked by cost-efficiency, speed, and success rate
 
+Screenshots below are from a real, live Claude Code session connected to local mode — not fabricated data.
+
+<table>
+<tr>
+<td><img src="docs/screenshots/overview.png" alt="Overview page" width="400"></td>
+<td><img src="docs/screenshots/sessions.png" alt="Sessions page" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/timeline.png" alt="Session timeline / event sequence" width="400"></td>
+<td><img src="docs/screenshots/metrics.png" alt="Metrics page" width="400"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/leaderboard.png" alt="Leaderboard page" width="400"></td>
+<td></td>
+</tr>
+</table>
+
 ## Cloud mode (optional)
 
 ```bash
