@@ -2,7 +2,7 @@
 
 An observability platform for AI coding agents — Claude Code, OpenAI Codex CLI, and Google Gemini CLI. It ingests each agent's **real, native OpenTelemetry telemetry** (no synthetic data), stores it locally in SQLite, and renders it in a Next.js dashboard. An optional Terraform-managed AWS path mirrors the same telemetry into CloudWatch/X-Ray for a `terraform apply` / `terraform destroy` demo.
 
-See [docs/PRD.md](docs/PRD.md) for the full product spec, [docs/adr/0001-architecture-and-tech-stack.md](docs/adr/0001-architecture-and-tech-stack.md) for why things are built this way, [docs/ROADMAP.md](docs/ROADMAP.md) for build status and what's next, and [docs/MILESTONES.md](docs/MILESTONES.md) for a log of what's shipped so far.
+See [docs/PRD.md](docs/PRD.md) for the full product spec, [docs/adr/0001-architecture-and-tech-stack.md](docs/adr/0001-architecture-and-tech-stack.md) for why things are built this way, [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status, and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.
 
 ## Architecture
 
@@ -128,6 +128,6 @@ npm run typecheck
 npm test
 ```
 
-## Status
+## Status: Complete
 
-All 7 success criteria from the original spec are met. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS both manually (`eu-central-1`) and through the fully gated CI/CD path (`deploy-aws.yml`, real manual-approval pause verified), with real data confirmed in CloudWatch. All phases through Phase 9 are complete and CI is confirmed green on GitHub Actions. See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.
+All 7 success criteria from the original spec are met, verified against real infrastructure rather than just planned. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS both manually (`eu-central-1`) and through the fully gated CI/CD path (`deploy-aws.yml`, real manual-approval pause verified), with real data confirmed in CloudWatch, then torn down cleanly both ways. CI is confirmed green on GitHub Actions. See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.

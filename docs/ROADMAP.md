@@ -1,5 +1,7 @@
 # Roadmap
 
+**Project complete.** Phases 0–9 (everything in the original tech task's scope) are done and verified against real infrastructure — see [PRD §10](PRD.md#10-success-criteria--all-met) for the success-criteria checklist and [MILESTONES.md](MILESTONES.md) for the evidence trail. Phase 10 is explicitly out-of-scope stretch work, not a gap.
+
 Phased implementation plan. Each phase lists its goal, deliverables, and acceptance criteria, written so an autonomous coding agent can pick up any pending phase with just this document, the [PRD](PRD.md), and the [ADR](adr/0001-architecture-and-tech-stack.md) for context. Status is kept current at every milestone commit.
 
 **Legend:** ✅ done · 🚧 in progress · ⬜ pending · 🧊 backlog (not planned for v1)

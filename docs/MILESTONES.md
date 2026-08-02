@@ -85,6 +85,13 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Deployed to **us-east-1**, not the `eu-central-1` used for the manual local deploys — the CI runner has no access to the local, gitignored `terraform.tfvars`, so it correctly fell back to the repo's committed default region. Worth knowing, not a bug.
 - Torn down through the same gated pipeline (`action=destroy`), closing the loop: dispatch → approval → real destroy. Verified live against AWS afterward — nothing left in either region, no orphaned IAM policies. The full apply→verify→destroy cycle now works end to end through CI/CD, not just via local Terraform CLI.
 
-## What's left
+## Project status: complete
 
-All 7 PRD success criteria are met with genuinely real (not synthetic) local telemetry, the README shows real screenshots, and Phase 9 (portfolio polish) is complete. Only Phase 10 stretch goals remain, all explicitly backlog and not planned for v1 — see [ROADMAP.md](ROADMAP.md).
+All 7 PRD success criteria are met, verified against real infrastructure rather than just planned:
+- Real local telemetry (a genuine connected Claude Code session, not synthetic data)
+- Real AWS deployment, twice over — once via local Terraform CLI, once via the fully gated CI/CD workflow with a real manual-approval pause
+- Real teardown, verified live against AWS both times
+- CI confirmed green on GitHub Actions across multiple pushes
+- The README shows real screenshots, not mockups
+
+Phase 10 (stretch goals: session replay, Mean Time to Green, deeper cost-efficiency metrics, Jaeger/Tempo export, live telemetry, additional agent adapters) remains explicitly out of scope for v1 — backlog, not a gap. See [ROADMAP.md](ROADMAP.md).

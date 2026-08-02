@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft — in active development |
+| **Status** | Complete — all functional requirements and success criteria (§10) delivered and verified against real infrastructure |
 | **Owner** | Arthur Locke |
 | **Last updated** | 2026-08-02 |
 | **Related docs** | [ADR 0001: Architecture & Tech Stack](adr/0001-architecture-and-tech-stack.md) · [Roadmap](ROADMAP.md) · [Connect Agents Guide](CONNECT_AGENTS.md) |
@@ -144,26 +144,26 @@ Internal normalized tables (SQLite): `sessions`, `spans`, `metrics` — see [ADR
 
 Cost is read directly from `claude_code.cost.usage` for Claude Code sessions (vendor-reported, exact). Gemini CLI and Codex CLI do not natively report cost, so it is estimated from token counts using a local pricing table and flagged `costIsEstimated: true` in the API and UI.
 
-## 10. Success Criteria
+## 10. Success Criteria — All Met
 
-Adopted directly from the originating tech task, still the acceptance bar for "done":
+Adopted directly from the originating tech task; every criterion has been verified against real infrastructure, not just planned (see [MILESTONES.md](MILESTONES.md) for evidence of each):
 
-1. Clone the repository.
-2. Run `docker compose up`.
-3. Open the dashboard.
-4. Point a real agent (Claude Code, Codex CLI, or Gemini CLI) at the collector and view its telemetry live, locally.
-5. Deploy to AWS via Terraform.
-6. Verify data in CloudWatch/X-Ray.
-7. Destroy the infrastructure.
+1. ✅ Clone the repository.
+2. ✅ Run `docker compose up`.
+3. ✅ Open the dashboard.
+4. ✅ Point a real agent at the collector and view its telemetry live, locally — verified with a genuine connected Claude Code session (Milestone 7).
+5. ✅ Deploy to AWS via Terraform — verified both via local CLI and through the fully gated CI/CD path (Milestones 6 and 10).
+6. ✅ Verify data in CloudWatch — confirmed live, both from a manual deploy and from the CI/CD-triggered deploy (X-Ray was not separately exercised since `enable_xray` stayed off; the module itself is written and `validate`-clean).
+7. ✅ Destroy the infrastructure — verified via local CLI and via the gated CI/CD workflow, both confirmed clean against live AWS afterward.
 
 ## 11. Risks & Open Questions
 
-| Risk | Mitigation |
+| Risk | Status |
 |---|---|
-| Codex CLI's OTel schema is young and not fully publicly documented; its adapter may miss fields or need updates as the schema stabilizes. | Generic fallback adapter preserves raw attributes so nothing is silently dropped; documented explicitly in code and in the ADR. |
-| Whether `~/.claude/settings.json` env vars reliably reach the VS Code extension (not just the CLI) is not explicitly confirmed in Anthropic's docs. | Documented as "expected, verify empirically" in the Connect Agents Guide; users can check collector `debug` exporter logs to confirm. |
-| SQLite is single-writer; concurrent high-throughput ingestion from multiple simultaneous agent sessions could contend on writes. | Acceptable at demo/personal scale (the target use case); noted as a scaling limitation, not fixed in v1. |
-| AWS credentials/Terraform were not available in the original build environment, so `terraform apply` has not been executed against a real account as part of this build. | Terraform code is written and `fmt`/`validate`-checked where a binary is available; first real `apply` is a documented manual follow-up step for the repo owner. |
+| Codex CLI's OTel schema is young and not fully publicly documented; its adapter may miss fields or need updates as the schema stabilizes. | Open. Generic fallback adapter preserves raw attributes so nothing is silently dropped; documented explicitly in code and in the ADR. Not exercised against a real Codex CLI session (only Claude Code is in active use). |
+| Whether `~/.claude/settings.json` env vars reliably reach the VS Code extension (not just the CLI) is not explicitly confirmed in Anthropic's docs. | **Resolved.** Confirmed empirically — a real Claude Code session connected through the VS Code-integrated environment and its telemetry was correctly ingested (Milestone 7). |
+| SQLite is single-writer; concurrent high-throughput ingestion from multiple simultaneous agent sessions could contend on writes. | Open, accepted. Fine at demo/personal scale (the target use case); noted as a scaling limitation, not fixed in v1. |
+| AWS credentials/Terraform were not available in the original build environment, so `terraform apply` had not been executed against a real account. | **Resolved.** Real `terraform apply`/`destroy` cycles completed successfully, both via local CLI (`eu-central-1`) and via the gated GitHub Actions workflow (`us-east-1`), each verified live against AWS (Milestones 6, 10). |
 
 ## 12. Out of Scope / Stretch Goals
 
