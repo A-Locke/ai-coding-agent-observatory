@@ -16,7 +16,8 @@ export function codexCliMetricDelta(
   switch (metricName) {
     case CODEX_CLI_METRIC.TURN_TOKEN_USAGE: {
       const type = attributes.type as string | undefined; // unconfirmed attribute name; best effort
-      const delta: Delta = { costIsEstimated: true };
+      const model = attributes.model as string | undefined; // also unconfirmed; best effort
+      const delta: Delta = { costIsEstimated: true, model };
       if (type === "output") delta.outputTokensDelta = value;
       else delta.inputTokensDelta = value;
       return delta;

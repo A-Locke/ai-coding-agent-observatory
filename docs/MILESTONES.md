@@ -50,6 +50,8 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Found and documented a second bug getting the cloud-mode collector running: `docker-compose.cloud.yml` silently failed to pick up `.env` because Compose resolves it relative to the compose file's directory (`infra/docker/`), not the repo root. Fixed by documenting `--env-file .env` in the README (ADR D15).
 - Sent a schema-accurate OTLP payload through the running cloud-mode collector and **confirmed the data in CloudWatch**: `claude_code.token.usage` and `claude_code.cost.usage` registered in the `AIObservatory` metrics namespace, and the raw `claude_code.tool_result` log events read back correctly from `/ai-observatory/otel` with all attributes intact. **Satisfies PRD success criterion 6.**
 - Only criterion 7 (`terraform destroy`) remains, to be run once the repo owner is done experimenting with the live deployment.
+- **Addendum, same day:** `terraform destroy` was re-run for real after the AWS console walkthrough (screenshots confirmed the dashboard, log streams, custom metrics, and IAM policy all looked correct) — clean single-pass destroy this time, confirming the D14 fix works. Verified live against AWS again afterward: nothing left in either region.
+- **Bug found while preparing local-mode demo data:** the Gemini CLI and Codex CLI ingest adapters extracted token counts but never extracted `model` from attributes (only Claude Code's adapter did) — every Gemini/Codex session would have shown "unknown model" and grouped incorrectly on the Leaderboard. Fixed in both adapters; caught before it ever mattered in practice, since only Claude Code is in real use right now.
 
 ## What's left
 

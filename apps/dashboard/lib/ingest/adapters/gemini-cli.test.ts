@@ -13,6 +13,11 @@ describe("geminiCliMetricDelta", () => {
     const delta = geminiCliMetricDelta(GEMINI_CLI_METRIC.TOKEN_USAGE, 10, { type: "cache" });
     expect(delta.inputTokensDelta).toBe(10);
   });
+
+  it("extracts the model attribute so sessions aren't left unattributed", () => {
+    const delta = geminiCliMetricDelta(GEMINI_CLI_METRIC.TOKEN_USAGE, 10, { type: "input", model: "gemini-2.5-pro" });
+    expect(delta.model).toBe("gemini-2.5-pro");
+  });
 });
 
 describe("geminiCliLogDelta", () => {

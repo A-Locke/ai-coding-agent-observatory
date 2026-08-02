@@ -14,7 +14,8 @@ export function geminiCliMetricDelta(
   switch (metricName) {
     case GEMINI_CLI_METRIC.TOKEN_USAGE: {
       const type = attributes.type as string | undefined; // input | output | thought | cache | tool
-      const delta: Delta = { costIsEstimated: true };
+      const model = attributes.model as string | undefined;
+      const delta: Delta = { costIsEstimated: true, model };
       if (type === "output") delta.outputTokensDelta = value;
       else if (type === "input" || type === "cache") delta.inputTokensDelta = value;
       return delta;
