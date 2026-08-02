@@ -130,4 +130,4 @@ npm test
 
 ## Status
 
-All 7 success criteria from the original spec are met. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS (`eu-central-1`), verified with real data in CloudWatch, and torn down afterward with `terraform destroy`. CI is confirmed green on GitHub Actions. See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.
+All 7 success criteria from the original spec are met. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS both manually (`eu-central-1`) and through the fully gated CI/CD path (`deploy-aws.yml`, real manual-approval pause verified), with real data confirmed in CloudWatch. All phases through Phase 9 are complete and CI is confirmed green on GitHub Actions. See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.

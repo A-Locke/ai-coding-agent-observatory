@@ -87,7 +87,7 @@ The AI Coding Agent Observatory ingests OpenTelemetry (OTel) telemetry from AI c
 
 **Decision:** CI (`ci.yml`) and Terraform validation (`terraform.yml`) run automatically on push/PR. The actual AWS deploy workflow (`deploy-aws.yml`) is `workflow_dispatch`-only and targets a GitHub Environment intended to have a required-reviewers protection rule.
 
-**Why:** Directly required by the brief ("AWS deployment must require manual approval"). Note: the workflow YAML can *reference* an environment, but the required-reviewers rule itself is a one-time GitHub repository-settings step, not something expressible in the workflow file — this is called out explicitly in the [Roadmap](../ROADMAP.md) as a manual setup step for the repo owner.
+**Why:** Directly required by the brief ("AWS deployment must require manual approval"). The workflow YAML can only *reference* an environment (`environment: aws-deploy`) — the required-reviewers rule itself isn't expressible in the workflow file. **Correction, verified in Milestone 10:** this was originally assumed to require the GitHub web UI, but it's actually a one-time `PUT /repos/{owner}/{repo}/environments/{name}` API call (public repos get environment protection rules for free, no GitHub Enterprise needed) — `gh api --method PUT repos/OWNER/REPO/environments/ENV_NAME -F reviewers[][type]=User -F reviewers[][id]=<numeric user id>`. Confirmed for real: dispatching `deploy-aws.yml` correctly paused for review until approved, then ran `terraform apply` and created real resources.
 
 ### D11: Ingest routes decompress gzip explicitly, not just `request.json()`
 

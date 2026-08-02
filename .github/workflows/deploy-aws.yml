@@ -2,10 +2,11 @@ name: Deploy AWS (manual)
 
 # Manual-trigger only, per the tech task's requirement that AWS deployment
 # require approval -- this workflow never runs on push. The `environment:`
-# below is where a GitHub repo-settings "required reviewers" protection
-# rule attaches; that rule itself is a one-time manual setup step (Settings
-# -> Environments -> aws-deploy -> Required reviewers) that can't be
-# expressed in this YAML file -- see ADR 0001, D10.
+# below is where a GitHub "required reviewers" protection rule attaches;
+# that rule can't be expressed in this YAML file, but it IS a one-time
+# scriptable setup step (not just the web UI) -- see ADR 0001, D10 for the
+# `gh api` command. Verified working end to end: dispatching this workflow
+# correctly pauses for review until approved.
 on:
   workflow_dispatch:
     inputs:

@@ -75,6 +75,15 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Fixed an IDE-flagged `tsconfig.json` deprecation in `packages/shared`: `moduleResolution: "node"` is being phased out entirely (not just renamed) by TypeScript 7.0. Moved to `"NodeNext"`, verified the build still produces plain CommonJS output (the package has no `"type": "module"`), so this didn't require any of the ESM `.js`-extension changes that were specifically avoided earlier.
 - Re-verified everything after the cleanup: `npm install`, shared package build, full lint/typecheck/test/build across the monorepo, and a live rebuild of the running dashboard container — confirmed the connected real Claude Code session's data survived the rebuild untouched.
 
+## Milestone 10 — Gated CI/CD deploy path verified for real (2026-08-02)
+
+- Local dashboard destructively torn down (`docker compose down -v`) for a clean-slate manual re-verification.
+- Repo owner created the `aws-deploy` GitHub Environment and added `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (from the `terraform-deploy` admin user) as environment secrets — but the environment initially had **no protection rules** (`"protection_rules": []`), meaning `deploy-aws.yml` would have run immediately with no approval gate, defeating the tech task's explicit "AWS deployment must require manual approval" requirement.
+- Fixed via the GitHub REST API directly (public repos get environment protection rules for free; this doesn't require GitHub Enterprise): added a `required_reviewers` rule naming the repo owner, `prevent_self_review: false` so they can approve their own dispatches.
+- Dispatching the workflow itself was blocked by this environment's safety controls (same as the direct `terraform apply` calls earlier) since it ultimately provisions real cloud infrastructure — the repo owner ran `gh workflow run deploy-aws.yml` themselves.
+- **The full gated pipeline worked end to end for the first time:** dispatch → paused for review → repo owner approved → `terraform apply` ran inside the Action → 5 resources created. Verified live against AWS directly (not just the job's own log): `/ai-observatory/otel` log group, `ai-observatory-dashboard`, and the `ai-observatory-collector` IAM user all genuinely exist.
+- Deployed to **us-east-1**, not the `eu-central-1` used for the manual local deploys — the CI runner has no access to the local, gitignored `terraform.tfvars`, so it correctly fell back to the repo's committed default region. Worth knowing, not a bug.
+
 ## What's left
 
 All 7 PRD success criteria are met with genuinely real (not synthetic) local telemetry, the README shows real screenshots, and Phase 9 (portfolio polish) is complete. Only Phase 10 stretch goals remain, all explicitly backlog and not planned for v1 — see [ROADMAP.md](ROADMAP.md).
