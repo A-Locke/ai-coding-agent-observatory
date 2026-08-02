@@ -1,4 +1,4 @@
-import { identifyAgentFromRecordName, type AgentType, type Provider } from "@observatory/shared";
+import { CLAUDE_CODE_ATTR, identifyAgentFromRecordName, type AgentType, type Provider } from "@observatory/shared";
 import {
   flattenLogs,
   flattenMetrics,
@@ -42,13 +42,16 @@ const LOG_DELTA_FNS: Record<AgentType, (name: string, attrs: Record<string, unkn
   "codex-cli": codexCliLogDelta,
 };
 
+// "session.id" is the one key genuinely shared across all three vendor
+// schemas (each defines it identically) -- not imported from any single
+// agent's *_ATTR module on purpose, since this function is agent-agnostic.
 function extractSessionId(attributes: Record<string, unknown>): string | null {
   const value = attributes["session.id"];
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 function extractAgentVersion(agentType: AgentType, attributes: Record<string, unknown>): string | null {
-  if (agentType === "claude-code") return (attributes["app.version"] as string | undefined) ?? null;
+  if (agentType === "claude-code") return (attributes[CLAUDE_CODE_ATTR.APP_VERSION] as string | undefined) ?? null;
   return null;
 }
 

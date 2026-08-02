@@ -66,6 +66,15 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - All five show the genuine connected Claude Code session from Milestone 7 — real session ID, real model names (`claude-sonnet-5`, `claude-haiku-4-5-20251001` on a subagent call), real event sequence (`mcp_server_connection`, `user_prompt`, `api_request`, `assistant_response`, `tool_decision`, `tool_result`). No prompt or tool content is visible, confirming the privacy-by-default posture (`OTEL_LOG_USER_PROMPTS`/`OTEL_LOG_TOOL_DETAILS` unset) works as designed.
 - Wired into the README's Dashboard section with a caption noting explicitly that this is real, not fabricated, data.
 
+## Milestone 9 — Dead-code and stale-docs sweep, Phase 9 complete (2026-08-02)
+
+- No TODO/FIXME/HACK markers existed anywhere in the repo.
+- Removed genuinely dead code, verified by grepping actual usage rather than guessing: 5 unused `KNOWN_CLAUDE_CODE_*`/`KNOWN_GEMINI_CLI_*` exports, the entire `GEN_AI_ATTR`/`GEN_AI_METRIC` module (never wired up), and the unused `Button`/`Badge` shadcn-style components — which also made `class-variance-authority` an unused dependency, so that came out of `package.json` too.
+- Fixed a stale ADR: D4 claimed the generic ingest fallback "reads the vendor-neutral `gen_ai.*` semantic-convention attributes where present," but that was never implemented — the real behavior (unconditional raw-JSON persistence, no special parsing) is now documented accurately, with an honest note about the gap between the original intent and what actually shipped.
+- Fixed two magic-string call sites in `lib/ingest/process.ts` that should have used the shared attribute constants they were written to replace (`extractAgentVersion` now imports `CLAUDE_CODE_ATTR.APP_VERSION` instead of hardcoding `"app.version"`); `extractSessionId` keeps its literal deliberately, with a comment explaining why (it's the one key genuinely shared across all three vendor schemas, so importing it from any single agent's module would be misleading).
+- Fixed an IDE-flagged `tsconfig.json` deprecation in `packages/shared`: `moduleResolution: "node"` is being phased out entirely (not just renamed) by TypeScript 7.0. Moved to `"NodeNext"`, verified the build still produces plain CommonJS output (the package has no `"type": "module"`), so this didn't require any of the ESM `.js`-extension changes that were specifically avoided earlier.
+- Re-verified everything after the cleanup: `npm install`, shared package build, full lint/typecheck/test/build across the monorepo, and a live rebuild of the running dashboard container — confirmed the connected real Claude Code session's data survived the rebuild untouched.
+
 ## What's left
 
-All 7 PRD success criteria are met, including with genuinely real (not synthetic) local telemetry, and the README now shows real screenshots of it. Remaining backlog: a TODO/dead-code sweep (Phase 9) and Phase 10 stretch goals — see [ROADMAP.md](ROADMAP.md).
+All 7 PRD success criteria are met with genuinely real (not synthetic) local telemetry, the README shows real screenshots, and Phase 9 (portfolio polish) is complete. Only Phase 10 stretch goals remain, all explicitly backlog and not planned for v1 — see [ROADMAP.md](ROADMAP.md).

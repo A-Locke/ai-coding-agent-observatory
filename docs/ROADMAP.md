@@ -93,13 +93,13 @@ Goal: GitHub Actions gates matching the PRD's FR-17–19.
 
 Acceptance: workflows are syntactically valid and pass on this repo's own code; a note is left for the repo owner that the Environment's required-reviewers protection rule is a one-time manual GitHub settings step, not something the workflow YAML itself can configure. **Met** — pushing Milestone 4 triggered `ci.yml` for real on GitHub Actions and it finished fully green (checkout → setup-node → install → build shared → lint → typecheck → test → build, [run 30743029646](https://github.com/A-Locke/ai-coding-agent-observatory/actions/runs/30743029646)). `terraform.yml` is path-filtered to `infra/terraform/**` and correctly did not trigger on this push (no changes there). **Still outstanding (repo owner action):** create the `aws-deploy` GitHub Environment with a required-reviewers rule, and add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repo secrets before `deploy-aws.yml` can actually be dispatched.
 
-## Phase 9 — Portfolio Polish 🚧
+## Phase 9 — Portfolio Polish ✅
 
 Goal: make the finished repo easy to evaluate at a glance.
 
 - [x] README screenshots of the dashboard with real data — done in Milestone 8, using actual saved files this time (the Milestone 6 AWS console screenshots are still lost; not worth a throwaway `terraform apply`/`destroy` cycle just to retake those). Local dashboard screenshots (Overview, Sessions, Timeline, Metrics, Leaderboard) show a genuine connected Claude Code session, not fabricated data.
 - [x] Architecture diagram (mermaid) in the README — one unified diagram covering both local flow and the optional cloud branch, rather than two separate diagrams; covers the same ground as the PRD's local/cloud ASCII diagrams
-- [ ] Sweep for TODOs, dead code, and stale comments
+- [x] Sweep for TODOs, dead code, and stale comments — done in Milestone 9. No TODO/FIXME/HACK markers existed anywhere. Found and removed real dead code: 5 unused `KNOWN_*` exports, the entire unused `GEN_AI_ATTR`/`GEN_AI_METRIC` module, and the unused `Button`/`Badge` UI components (plus their now-unused `class-variance-authority` dependency). Found and fixed a stale ADR (D4 described `gen_ai.*` attribute parsing that was never actually implemented) and two magic-string call sites that should have used the shared constants they were written to replace. Also fixed a `tsconfig.json` deprecation (`moduleResolution: "node"` → `"NodeNext"`, TypeScript 5.9 is phasing out the whole classic-Node-resolution family by 7.0).
 
 ## Phase 10 — Stretch Goals 🧊 (backlog, not planned for v1)
 
