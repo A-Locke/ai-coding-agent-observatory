@@ -83,7 +83,7 @@ Goal: `infra/terraform` modules for the optional AWS path, written and `fmt`/`va
 
 Acceptance: `terraform fmt -check` and `terraform validate` pass wherever a `terraform` binary is available; a documented manual follow-up (`terraform apply`, verify CloudWatch/X-Ray, `terraform destroy`) is recorded for the repo owner to execute against a real AWS account. **Met** — Terraform was installed for this milestone specifically to verify the code: `terraform fmt -recursive` (clean after one formatting pass), `terraform init`, and `terraform validate` all pass. `terraform plan` with all optional modules enabled and dummy credentials built the full resource graph successfully (including the Lambda archive_file zip) and only failed at the live AWS STS auth call, as expected without real credentials — the strongest verification possible without an AWS account. **Still pending:** an actual `terraform apply` against a real AWS account, and `terraform destroy` afterward — left for the repo owner (success criteria 5–7).
 
-## Phase 8 — CI/CD ✅ (written and syntax-validated; not yet run on GitHub)
+## Phase 8 — CI/CD ✅
 
 Goal: GitHub Actions gates matching the PRD's FR-17–19.
 
@@ -91,7 +91,7 @@ Goal: GitHub Actions gates matching the PRD's FR-17–19.
 - [x] `.github/workflows/terraform.yml`: `fmt -check` + `init -backend=false` + `validate` on changes under `infra/terraform/**`; `plan` runs opportunistically only if AWS secrets are configured
 - [x] `.github/workflows/deploy-aws.yml`: `workflow_dispatch`-only (apply/destroy choice + feature-flag inputs), targets a GitHub Environment (`aws-deploy`) intended to carry a required-reviewers rule; state bridged between runs via a best-effort `actions/cache` (ADR D13)
 
-Acceptance: workflows are syntactically valid and pass on this repo's own code; a note is left for the repo owner that the Environment's required-reviewers protection rule is a one-time manual GitHub settings step, not something the workflow YAML itself can configure. **Partially met** — all three workflow files validated as parseable YAML (`js-yaml`). `ci.yml`'s steps are the same commands already verified locally in Milestones 1–3 (`npm run lint/typecheck/test/build`, all passing). Not yet verified as *actually green on GitHub* since that requires pushing and watching a real Actions run, which the repo owner should confirm after this push. The one-time manual step (create a GitHub Environment named `aws-deploy` with a required-reviewers rule, and add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repo secrets) is still outstanding and is the repo owner's to do.
+Acceptance: workflows are syntactically valid and pass on this repo's own code; a note is left for the repo owner that the Environment's required-reviewers protection rule is a one-time manual GitHub settings step, not something the workflow YAML itself can configure. **Met** — pushing Milestone 4 triggered `ci.yml` for real on GitHub Actions and it finished fully green (checkout → setup-node → install → build shared → lint → typecheck → test → build, [run 30743029646](https://github.com/A-Locke/ai-coding-agent-observatory/actions/runs/30743029646)). `terraform.yml` is path-filtered to `infra/terraform/**` and correctly did not trigger on this push (no changes there). **Still outstanding (repo owner action):** create the `aws-deploy` GitHub Environment with a required-reviewers rule, and add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repo secrets before `deploy-aws.yml` can actually be dispatched.
 
 ## Phase 9 — Portfolio Polish ⬜
 

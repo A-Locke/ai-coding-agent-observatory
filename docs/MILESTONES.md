@@ -30,8 +30,8 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - `.github/workflows/ci.yml`: lint, typecheck, test, build against every push/PR.
 - `.github/workflows/terraform.yml`: `fmt -check`, `init -backend=false`, `validate` on any change under `infra/terraform/**`; `plan` runs opportunistically if AWS secrets happen to be configured.
 - `.github/workflows/deploy-aws.yml`: manual-dispatch only (apply/destroy + feature-flag inputs), gated behind a GitHub Environment (`aws-deploy`) meant to carry a required-reviewers rule. Bridges Terraform state between separate runs via a best-effort `actions/cache` (documented limitation — see ADR 0001, D13) since this project intentionally uses local state (D9).
-- All three workflow files validated as parseable YAML; `ci.yml`'s individual commands were already verified passing locally throughout Milestones 1–3.
-- **Not done (repo owner action required):** create the `aws-deploy` GitHub Environment with a required-reviewers rule, add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repository secrets, and confirm a real GitHub Actions run goes green — none of this is possible from this build environment.
+- Pushing this milestone triggered `ci.yml` for real; it finished fully green on the first run ([30743029646](https://github.com/A-Locke/ai-coding-agent-observatory/actions/runs/30743029646)) — checkout, install, build shared, lint, typecheck, test, and build all passed with no fixes needed.
+- **Not done (repo owner action required):** create the `aws-deploy` GitHub Environment with a required-reviewers rule and add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repository secrets before `deploy-aws.yml` can actually be dispatched — not possible from this build environment (no AWS account).
 
 ## What's left
 
