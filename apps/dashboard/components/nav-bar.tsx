@@ -12,6 +12,17 @@ const LINKS = [
   { href: "/leaderboard", label: "Leaderboard" },
 ];
 
+// /timeline immediately redirects (server-side) to /sessions/[id], so the
+// browser's actual URL is always under /sessions/* by the time this runs --
+// a plain prefix match would always highlight "Sessions" instead. Treat a
+// session *detail* page as the Timeline tab; only the bare list is Sessions.
+function isActive(href: string, pathname: string): boolean {
+  if (href === "/") return pathname === "/";
+  if (href === "/sessions") return pathname === "/sessions";
+  if (href === "/timeline") return pathname === "/timeline" || pathname.startsWith("/sessions/");
+  return pathname.startsWith(href);
+}
+
 export function NavBar() {
   const pathname = usePathname();
   return (
@@ -22,7 +33,7 @@ export function NavBar() {
         </Link>
         <nav className="flex items-center gap-1">
           {LINKS.map((link) => {
-            const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+            const active = isActive(link.href, pathname);
             return (
               <Link
                 key={link.href}
