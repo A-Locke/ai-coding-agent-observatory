@@ -32,6 +32,9 @@ infra/terraform/**/*.tfvars
 !infra/terraform/**/*.tfvars.example
 infra/terraform/**/crash.log
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Logs
 npm-debug.log*
 *.log

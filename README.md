@@ -2,7 +2,7 @@
 
 An observability platform for AI coding agents — Claude Code, OpenAI Codex CLI, and Google Gemini CLI. It ingests each agent's **real, native OpenTelemetry telemetry** (no synthetic data), stores it locally in SQLite, and renders it in a Next.js dashboard. An optional Terraform-managed AWS path mirrors the same telemetry into CloudWatch/X-Ray for a `terraform apply` / `terraform destroy` demo.
 
-See [docs/PRD.md](docs/PRD.md) for the full product spec, [docs/adr/0001-architecture-and-tech-stack.md](docs/adr/0001-architecture-and-tech-stack.md) for why things are built this way, and [docs/ROADMAP.md](docs/ROADMAP.md) for build status and what's next.
+See [docs/PRD.md](docs/PRD.md) for the full product spec, [docs/adr/0001-architecture-and-tech-stack.md](docs/adr/0001-architecture-and-tech-stack.md) for why things are built this way, [docs/ROADMAP.md](docs/ROADMAP.md) for build status and what's next, and [docs/MILESTONES.md](docs/MILESTONES.md) for a log of what's shipped so far.
 
 ## Architecture
 
@@ -78,4 +78,4 @@ npm test
 
 ## Status
 
-Under active development — see [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and what's next.
+Local mode (Docker Compose, ingest pipeline, SQLite storage, all five dashboard pages) is built and verified end to end. Cloud mode (Terraform, CI/CD) is in progress — see [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped.

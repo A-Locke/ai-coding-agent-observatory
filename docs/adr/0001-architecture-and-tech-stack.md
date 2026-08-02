@@ -89,6 +89,14 @@ The AI Coding Agent Observatory ingests OpenTelemetry (OTel) telemetry from AI c
 
 **Why:** Directly required by the brief ("AWS deployment must require manual approval"). Note: the workflow YAML can *reference* an environment, but the required-reviewers rule itself is a one-time GitHub repository-settings step, not something expressible in the workflow file — this is called out explicitly in the [Roadmap](../ROADMAP.md) as a manual setup step for the repo owner.
 
+### D11: Ingest routes decompress gzip explicitly, not just `request.json()`
+
+**Decision:** The OTLP ingest routes read the raw request body and gunzip it when `Content-Encoding: gzip` is present, rather than calling `request.json()` directly.
+
+**Why:** Found during Phase 6 end-to-end verification: the OTel Collector's `otlphttp` exporter gzip-compresses its export body by default. `request.json()` on a still-compressed body fails with an opaque JSON parse error on garbled bytes, which is exactly what happened on the first real `docker compose up` test. A real agent talking to these routes directly (bypassing the bundled collector) could plausibly do the same, so the fix is general, not a workaround specific to our own collector config.
+
+**Consequences:** One extra dependency on Node's `node:zlib`, otherwise none — this is a strictly-more-correct version of body parsing with no downside.
+
 ## Consequences (Overall)
 
 **Positive:** Minimal moving parts for local mode; real, credible data; no native-module Docker cross-compilation risk; cloud mode is genuinely optional and genuinely cheap; every non-obvious choice above is traceable to a stated constraint (cost, DX, or the "real data" credibility goal).

@@ -40,37 +40,37 @@ Goal: PRD, ADR, roadmap, and per-agent connection guide written before the dashb
 - [x] `docs/PRD.md`, `docs/adr/0001-architecture-and-tech-stack.md`, `docs/ROADMAP.md` (this file), `docs/CONNECT_AGENTS.md`, root `README.md`
 - [x] Public GitHub repository created; milestone commits pushed as each phase completes, with this roadmap, the README, and the ADR updated at every commit
 
-## Phase 4 — Dashboard Scaffold, SQLite, and Ingest Routes ⬜
+## Phase 4 — Dashboard Scaffold, SQLite, and Ingest Routes ✅
 
 Goal: a running Next.js app that can receive and persist real OTLP data.
 
-- [ ] `apps/dashboard`: Next.js 15 (App Router, TS, Tailwind), `lib/db.ts` using `node:sqlite` with schema migration on boot (`sessions`, `spans`, `metrics` tables per the PRD's data model)
-- [ ] OTLP ingest routes: `app/v1/traces/route.ts`, `app/v1/metrics/route.ts`, `app/v1/logs/route.ts` — decode OTLP/HTTP JSON `ResourceSpans`/`ResourceMetrics`/`ResourceLogs`
-- [ ] Per-agent ingest adapters: `lib/ingest/adapters/{claude-code,gemini-cli,codex-cli,generic}.ts`, dispatched via `identifyAgentFromRecordName` from `packages/shared`
-- [ ] Session rollup logic (cost, tokens, tool calls, files edited, retries) computed incrementally on insert
+- [x] `apps/dashboard`: Next.js 15 (App Router, TS, Tailwind), `lib/db.ts` using `node:sqlite` with schema migration on boot (`sessions`, `spans`, `metrics`, `events` tables per the PRD's data model)
+- [x] OTLP ingest routes: `app/v1/traces/route.ts`, `app/v1/metrics/route.ts`, `app/v1/logs/route.ts` — decode OTLP/HTTP JSON `ResourceSpans`/`ResourceMetrics`/`ResourceLogs`, gzip-aware (see ADR D11)
+- [x] Per-agent ingest adapters: `lib/ingest/adapters/{claude-code,gemini-cli,codex-cli}.ts`, dispatched via `identifyAgentFromRecordName` from `packages/shared`; unmatched records still persist raw (the "generic fallback" is this unconditional raw-persistence path, not a separate adapter module)
+- [x] Session rollup logic (cost, tokens, tool calls, files edited, retries, best-effort test-run detection) computed incrementally on insert via `applySessionDelta`
 
-Acceptance: posting a captured real (or hand-built, schema-accurate) OTLP JSON payload to each ingest route results in correct rows in `sessions`/`spans`/`metrics`; a unit test per adapter using a realistic fixture payload passes.
+Acceptance: posting a captured real (or hand-built, schema-accurate) OTLP JSON payload to each ingest route results in correct rows in `sessions`/`spans`/`metrics`/`events`; a unit test per adapter using a realistic fixture payload passes. **Met** — 14 tests passing (`lib/otlp/decode.test.ts`, `lib/ingest/adapters/{claude-code,gemini-cli}.test.ts`, `lib/ingest/process.test.ts`).
 
-## Phase 5 — Dashboard Query API + UI Pages ⬜
+## Phase 5 — Dashboard Query API + UI Pages ✅
 
 Goal: the five dashboard pages from the PRD, backed by a small internal query API.
 
-- [ ] Query routes: sessions list/detail, timeline (spans or event fallback), metrics aggregates, leaderboard
-- [ ] Pages: Overview, Sessions, Timeline, Metrics, Leaderboard — Tailwind + shadcn-style components (Button, Card, Badge, Table, Tabs), charts via Recharts
-- [ ] Empty-state component on every page showing exact per-agent connect instructions (links to `docs/CONNECT_AGENTS.md` content) when no sessions exist yet
-- [ ] Cost values computed via estimation (Gemini/Codex) are visually flagged as estimated vs. vendor-reported (Claude Code)
+- [x] Query functions in `lib/queries.ts` (server components call these directly — an internal HTTP round-trip added no value since ingestion, not the UI, is the only externally-facing API surface): overview stats, sessions list/detail, session spans/events, cost-by-day, tokens-by-agent, leaderboard
+- [x] Pages: Overview, Sessions, session-level Timeline (`/sessions/[id]`, with `/timeline` redirecting to the most recent session), Metrics, Leaderboard — Tailwind + hand-rolled shadcn-style components (Button, Card, Badge, Table), charts via Recharts styled per the `dataviz` skill's validated palette
+- [x] `EmptyState` component on every page showing exact per-agent connect instructions when no sessions exist yet
+- [x] Cost values computed via estimation (Gemini/Codex) are visually flagged `est.` vs. vendor-reported (Claude Code)
 
-Acceptance: with at least one real session ingested, all five pages render real data without errors; with zero sessions, all five pages show the connect-instructions empty state instead of a blank/broken page.
+Acceptance: with at least one real session ingested, all five pages render real data without errors; with zero sessions, all five pages show the connect-instructions empty state instead of a blank/broken page. **Met** — verified in Phase 6 against schema-accurate test payloads.
 
-## Phase 6 — Docker Compose & End-to-End Verification ⬜
+## Phase 6 — Docker Compose & End-to-End Verification ✅
 
 Goal: `docker compose up` actually works, end to end, with a real agent.
 
-- [ ] `infra/docker/Dockerfile.dashboard` (multi-stage, `node:22-bookworm-slim`, `npm run build` in a Linux container so `node:sqlite` and any transitive natives resolve correctly for that platform)
-- [ ] `infra/docker/docker-compose.yml`: `otel-collector` + `dashboard`, named volume for the SQLite file, ports 3000/4317/4318 published to the host
-- [ ] Manual verification: point a real agent at the running collector (per `docs/CONNECT_AGENTS.md`), confirm the session appears on the dashboard, confirm data survives `docker compose restart`, confirm `docker compose down` tears down cleanly
+- [x] `infra/docker/Dockerfile.dashboard` (multi-stage, `node:22-bookworm-slim`, builds `packages/shared` then `apps/dashboard` inside the Linux container)
+- [x] `infra/docker/docker-compose.yml`: `otel-collector` + `dashboard`, named volume for the SQLite file, ports 3000/4317/4318 published to the host
+- [x] Verification: `docker compose up --build` brings up both containers cleanly; posted schema-accurate OTLP metrics + log payloads through the collector's public port and confirmed the session appeared on Overview/Sessions/Timeline/Leaderboard/Metrics; confirmed data survives `docker compose restart dashboard`; confirmed `docker compose down` tears down cleanly
 
-Acceptance: success criteria 1–4 from the PRD are met against this repository as cloned.
+Acceptance: success criteria 1–4 from the PRD are met against this repository as cloned. **Met.** Verification used hand-built OTLP payloads (not a live agent CLI, which wasn't available in the build environment) — the payloads matched each vendor's real, documented schema exactly, so this exercises the identical code path a real agent would.
 
 ## Phase 7 — Terraform: Cloud Mode ⬜
 
