@@ -113,4 +113,4 @@ npm test
 
 ## Status
 
-Both local and cloud modes are built and verified end to end against real infrastructure — not just planned or dry-run. Cloud mode is currently live in `eu-central-1`; real telemetry has been confirmed landing in CloudWatch (metrics + logs). CI is confirmed green on GitHub Actions. The only thing left is `terraform destroy` once the repo owner is done experimenting. See [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped.
+All 7 success criteria from the original spec are met. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS (`eu-central-1`), verified with real data in CloudWatch, and torn down afterward with `terraform destroy`. CI is confirmed green on GitHub Actions. See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.
