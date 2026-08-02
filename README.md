@@ -65,6 +65,27 @@ docker compose -f infra/docker/docker-compose.cloud.yml up
 
 Run `terraform destroy` when done.
 
+### Cost
+
+Default `terraform apply` (no optional modules) creates 5 resources, all free or effectively free at demo scale (us-east-1, approximate — check [AWS's own pricing pages](https://aws.amazon.com/cloudwatch/pricing/) for current rates):
+
+| Resource | Approx. cost |
+|---|---|
+| CloudWatch log group (14-day retention) | ~$0.50/GB ingested + $0.03/GB stored — fractions of a cent at demo volume |
+| CloudWatch dashboard | Free (first 3 dashboards/account) |
+| CloudWatch custom metrics (EMF, via the collector) | First 10 metrics/month free (AWS Free Tier, new accounts); ~$0.30/metric/month after that — this project declares 4 |
+| IAM user + policy | Always free |
+
+Optional modules, only created if you flip their feature flag in `terraform.tfvars` / `deploy-aws.yml` inputs:
+
+| Resource | Approx. cost |
+|---|---|
+| DynamoDB (`enable_dynamodb`) | Pay-per-request: $1.25/million writes, $0.25/million reads — negligible at demo scale |
+| Lambda (`enable_lambda`) | Free tier: 1M requests + 400,000 GB-seconds/month — effectively free here |
+| X-Ray (`enable_xray`) | Free tier: 100,000 traces recorded/month, 1,000,000 traces retrieved/month |
+
+Nothing here runs continuously that accrues cost while idle except the CloudWatch log group's storage (trivial at this scale) — there's no EC2/ECS/EKS and no always-on compute. Run `terraform destroy` after a demo session to remove everything, including that storage.
+
 ## Repository layout
 
 ```
