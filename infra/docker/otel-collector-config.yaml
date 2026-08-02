@@ -1,0 +1,52 @@
+# Local-mode OpenTelemetry Collector config. Accepts OTLP from a real Claude
+# Code, Codex CLI, or Gemini CLI session (see docs/CONNECT_AGENTS.md) on the
+# standard OTLP ports, then forwards traces/metrics/logs to the dashboard's
+# OTLP ingest routes, which decode and persist them to SQLite.
+#
+# The exporter's base `endpoint` has no path -- the otlphttp exporter appends
+# the standard /v1/traces, /v1/metrics, /v1/logs suffixes itself, which is
+# why the dashboard's ingest routes live at those exact root-level paths.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 400
+    spike_limit_mib: 100
+  batch:
+    send_batch_size: 512
+    timeout: 2s
+
+exporters:
+  otlphttp/dashboard:
+    endpoint: http://dashboard:3000
+    encoding: json
+  debug:
+    verbosity: basic
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/dashboard, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/dashboard, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/dashboard, debug]
