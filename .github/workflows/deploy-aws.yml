@@ -1,0 +1,92 @@
+name: Deploy AWS (manual)
+
+# Manual-trigger only, per the tech task's requirement that AWS deployment
+# require approval -- this workflow never runs on push. The `environment:`
+# below is where a GitHub repo-settings "required reviewers" protection
+# rule attaches; that rule itself is a one-time manual setup step (Settings
+# -> Environments -> aws-deploy -> Required reviewers) that can't be
+# expressed in this YAML file -- see ADR 0001, D10.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action to run"
+        type: choice
+        options: [apply, destroy]
+        default: apply
+      enable_lambda:
+        description: "Provision the optional Lambda log-fanout"
+        type: boolean
+        default: false
+      enable_dynamodb:
+        description: "Provision the optional DynamoDB table"
+        type: boolean
+        default: false
+      enable_xray:
+        description: "Provision the optional X-Ray group/sampling rule"
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    name: terraform ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    environment: aws-deploy
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # Local state (ADR 0001, D9) means nothing persists between separate
+      # GitHub Actions runs by default -- this cache is a best-effort way to
+      # let `apply` now and `destroy` later (in a different run) target the
+      # same state, but actions/cache is NOT a real backend: entries can be
+      # evicted (unused after ~7 days) or simply miss. If this cache misses
+      # before a destroy run, `terraform plan` will show it creating
+      # everything again instead of destroying -- stop and reconcile state
+      # manually (e.g. `terraform import`) rather than applying blind. For
+      # anything beyond a single apply/destroy demo cycle, prefer running
+      # Terraform locally, where state is just a file that persists on disk.
+      # Saved under a run-unique key (see the save step below) because
+      # actions/cache never overwrites an existing key.
+      - name: Restore Terraform state (best effort)
+        uses: actions/cache/restore@v4
+        with:
+          path: infra/terraform/terraform.tfstate
+          key: tfstate-${{ github.repository }}-${{ github.run_id }}
+          restore-keys: |
+            tfstate-${{ github.repository }}-
+
+      - name: terraform init
+        run: terraform init
+
+      - name: terraform ${{ inputs.action }}
+        run: |
+          terraform ${{ inputs.action }} -auto-approve \
+            -var="enable_lambda=${{ inputs.enable_lambda }}" \
+            -var="enable_dynamodb=${{ inputs.enable_dynamodb }}" \
+            -var="enable_xray=${{ inputs.enable_xray }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Show outputs
+        if: ${{ inputs.action == 'apply' }}
+        run: terraform output
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Save Terraform state (best effort)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: infra/terraform/terraform.tfstate
+          key: tfstate-${{ github.repository }}-${{ github.run_id }}

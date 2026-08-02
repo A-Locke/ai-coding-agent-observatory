@@ -92,4 +92,4 @@ npm test
 
 ## Status
 
-Local mode (Docker Compose, ingest pipeline, SQLite storage, all five dashboard pages) is built and verified end to end. Cloud mode (Terraform, CI/CD) is in progress — see [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped.
+Local mode (Docker Compose, ingest pipeline, SQLite storage, all five dashboard pages) is built and verified end to end. Terraform for optional cloud mode is written and validated (`fmt`/`init`/`validate`/`plan` all pass; not yet `apply`'d against a real AWS account). CI/CD workflows are written and YAML-validated; not yet confirmed green on GitHub. See [docs/ROADMAP.md](docs/ROADMAP.md) for the current phase and [docs/MILESTONES.md](docs/MILESTONES.md) for what's shipped and what's left for the repo owner.

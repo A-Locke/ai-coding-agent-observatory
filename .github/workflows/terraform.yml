@@ -1,0 +1,41 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["infra/terraform/**"]
+  pull_request:
+    paths: ["infra/terraform/**"]
+
+jobs:
+  validate:
+    name: fmt, init, validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+
+      - name: terraform init (no backend)
+        run: terraform init -backend=false
+
+      - name: terraform validate
+        run: terraform validate
+
+      # Only runs when AWS credentials are configured as repo secrets --
+      # this repo doesn't require them, so plan is opportunistic rather
+      # than a hard requirement for CI to pass.
+      - name: terraform plan (only if AWS credentials are configured)
+        if: ${{ env.AWS_ACCESS_KEY_ID != '' }}
+        run: terraform plan -input=false
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

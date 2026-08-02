@@ -105,8 +105,16 @@ The AI Coding Agent Observatory ingests OpenTelemetry (OTel) telemetry from AI c
 
 **Consequences:** `terraform apply` alone doesn't produce working cloud-mode credentials — the README and Connect Agents guide call out the one manual command needed afterward.
 
+### D13: `deploy-aws.yml` uses `actions/cache` for state, not a real backend
+
+**Decision:** The manual-dispatch deploy workflow caches `terraform.tfstate` between runs via `actions/cache` (restore with a `run_id`-prefixed key + `restore-keys` fallback, save unconditionally at the end) rather than configuring a Terraform remote backend (e.g. S3 + DynamoDB locking).
+
+**Why:** D9 already accepts local state as a deliberate trade-off for a single-operator CLI-driven demo. Running `apply` and `destroy` as *separate* GitHub Actions invocations exposed a gap in that assumption: each run is a fresh ephemeral container, so without something bridging state between runs, a later `destroy` run would start from empty state and have nothing to destroy. A real backend (S3 + DynamoDB) is the correct production answer but is more AWS surface area than this demo's scope justifies. `actions/cache` is an honest middle ground: it works for the common case (apply, then destroy soon after) but is explicitly documented in the workflow as best-effort, not a substitute for a real backend -- cache entries can be evicted (~7 days unused) or simply miss.
+
+**Consequences:** The GitHub Actions path is suitable for a single apply-then-destroy demo cycle. Running Terraform locally (where state is just a file on disk) remains the recommended path for anything beyond that, and is what the README leads with.
+
 ## Consequences (Overall)
 
 **Positive:** Minimal moving parts for local mode; real, credible data; no native-module Docker cross-compilation risk; cloud mode is genuinely optional and genuinely cheap; every non-obvious choice above is traceable to a stated constraint (cost, DX, or the "real data" credibility goal).
 
-**Negative / accepted trade-offs:** SQLite is single-writer and not horizontally scalable (fine at demo scale). Local Terraform state doesn't support team collaboration (fine for a single-operator demo). The Codex CLI adapter is incomplete pending upstream schema stabilization. `node:sqlite` is newer and less battle-tested than `better-sqlite3` in production Node services.
+**Negative / accepted trade-offs:** SQLite is single-writer and not horizontally scalable (fine at demo scale). Local Terraform state doesn't support team collaboration and, for the GitHub Actions deploy path specifically, only survives between runs on a best-effort cache (fine for a single-operator demo). The Codex CLI adapter is incomplete pending upstream schema stabilization. `node:sqlite` is newer and less battle-tested than `better-sqlite3` in production Node services.

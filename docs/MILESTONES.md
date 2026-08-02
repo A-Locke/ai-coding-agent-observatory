@@ -25,6 +25,14 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Deliberately did not create an `aws_iam_access_key` resource (would write a secret into local Terraform state) — access key creation is a documented one-time manual step instead (ADR 0001, D12).
 - **Not done:** an actual `terraform apply`/`destroy` against a real AWS account (success criteria 5–7) — left for the repo owner to run deliberately, since it costs real money and this build environment has no AWS credentials.
 
-## Milestone 4 — CI/CD
+## Milestone 4 — CI/CD (2026-08-02)
 
-Pending.
+- `.github/workflows/ci.yml`: lint, typecheck, test, build against every push/PR.
+- `.github/workflows/terraform.yml`: `fmt -check`, `init -backend=false`, `validate` on any change under `infra/terraform/**`; `plan` runs opportunistically if AWS secrets happen to be configured.
+- `.github/workflows/deploy-aws.yml`: manual-dispatch only (apply/destroy + feature-flag inputs), gated behind a GitHub Environment (`aws-deploy`) meant to carry a required-reviewers rule. Bridges Terraform state between separate runs via a best-effort `actions/cache` (documented limitation — see ADR 0001, D13) since this project intentionally uses local state (D9).
+- All three workflow files validated as parseable YAML; `ci.yml`'s individual commands were already verified passing locally throughout Milestones 1–3.
+- **Not done (repo owner action required):** create the `aws-deploy` GitHub Environment with a required-reviewers rule, add `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repository secrets, and confirm a real GitHub Actions run goes green — none of this is possible from this build environment.
+
+## What's left
+
+Phase 9 (portfolio polish: screenshots, mermaid diagram already in the README) and Phase 10/stretch goals are backlog — see [ROADMAP.md](ROADMAP.md). The core deliverable (real local telemetry pipeline + optional, cost-conscious AWS path) is complete and verified as far as this environment allows.
