@@ -13,6 +13,11 @@ describe("claudeCodeMetricDelta", () => {
     expect(claudeCodeMetricDelta(CLAUDE_CODE_METRIC.TOKEN_USAGE, 100, { type: "input" })).toEqual({ inputTokensDelta: 100 });
     expect(claudeCodeMetricDelta(CLAUDE_CODE_METRIC.TOKEN_USAGE, 100, { type: "cacheRead" })).toEqual({ inputTokensDelta: 100 });
   });
+
+  it("extracts model from token.usage too, since it usually arrives before cost.usage", () => {
+    const delta = claudeCodeMetricDelta(CLAUDE_CODE_METRIC.TOKEN_USAGE, 100, { type: "input", model: "claude-sonnet-5" });
+    expect(delta.model).toBe("claude-sonnet-5");
+  });
 });
 
 describe("claudeCodeLogDelta", () => {

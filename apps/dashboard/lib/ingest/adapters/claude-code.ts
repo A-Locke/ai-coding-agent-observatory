@@ -20,9 +20,16 @@ export function claudeCodeMetricDelta(
       };
     case CLAUDE_CODE_METRIC.TOKEN_USAGE: {
       const type = attributes.type as string | undefined;
+      const model = attributes.model as string | undefined;
       // "input" | "output" | "cacheRead" | "cacheCreation" -- cache tokens
-      // roll into the input side, they're not generation output.
-      return type === "output" ? { outputTokensDelta: value } : { inputTokensDelta: value };
+      // roll into the input side, they're not generation output. Token
+      // usage typically arrives before cost (which lags behind the first
+      // export interval), so this is often the first chance to attribute
+      // a session to a model.
+      const delta: Delta = { model };
+      if (type === "output") delta.outputTokensDelta = value;
+      else delta.inputTokensDelta = value;
+      return delta;
     }
     default:
       return {};
