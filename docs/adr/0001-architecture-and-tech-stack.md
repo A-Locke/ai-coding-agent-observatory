@@ -125,6 +125,14 @@ The AI Coding Agent Observatory ingests OpenTelemetry (OTel) telemetry from AI c
 
 **Finding, not really a decision — recorded so it isn't rediscovered the hard way again:** Docker Compose resolves `.env` relative to the compose file's own directory by default. Since `infra/docker/docker-compose.cloud.yml` lives in `infra/docker/` but this project's `.env` lives at the repo root, `docker compose -f infra/docker/docker-compose.cloud.yml up` silently fails to find `AWS_ACCESS_KEY_ID` etc. even though `.env` is right there at the root. Every command against this compose file needs `--env-file .env` (resolved relative to the current working directory, i.e. the repo root) — documented in the README's cloud-mode section.
 
+### D16: CloudWatch alarms are provisioned but have no SNS/notification channel
+
+**Decision:** Phase 15's `enable_alarms` flag (default `false`) adds `aws_cloudwatch_metric_alarm` resources for cost and token-usage thresholds, a composite alarm, and two Logs Insights saved queries — all in `modules/cloudwatch/alarms.tf`. None of this creates an `aws_sns_topic` or any subscription.
+
+**Why:** An alarm reaching `ALARM` state and being visible via the console/CLI (`aws cloudwatch describe-alarms`) already demonstrates the capability this phase is about. Wiring a real notification channel means an SNS topic, a subscription, and (for email) a confirmation step nobody is actually going to click during a demo — real additional AWS surface area for a portfolio project whose cloud path is meant to stay minimal, not a materially better demonstration of the underlying skill.
+
+**Consequences:** Alarms are inert as alerts — they'll flip to `ALARM` but nobody gets paged. Verified live (`eu-central-1`): enabling the flag creates all 10 resources correctly (`terraform apply`, confirmed via `aws cloudwatch describe-alarms`/`aws logs describe-query-definitions`), and `terraform destroy` removes them cleanly. One destroy attempt was interrupted mid-run (Ctrl+C); before re-planning, live AWS was checked directly rather than trusting `terraform state list` alone — the interrupt had landed before any resource's delete call completed, so state and reality were still in sync and no drift needed reconciling.
+
 ## Consequences (Overall)
 
 **Positive:** Minimal moving parts for local mode; real, credible data; no native-module Docker cross-compilation risk; cloud mode is genuinely optional and genuinely cheap; every non-obvious choice above is traceable to a stated constraint (cost, DX, or the "real data" credibility goal).

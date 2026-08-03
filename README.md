@@ -35,11 +35,11 @@ Open [http://localhost:3000](http://localhost:3000). Then connect a real agent �
 
 ## Dashboard
 
-- **Overview** — fleet-wide KPIs and recent activity
-- **Sessions** — filterable list of agent sessions
-- **Timeline** — per-session trace/event waterfall
-- **Metrics** — latency, cost, and token charts
-- **Leaderboard** — agents/models ranked by cost-efficiency, speed, and success rate
+- **Overview** — fleet-wide KPIs, recent activity, and an alert summary banner
+- **Sessions** — filterable list of agent sessions, with alert badges and CSV/JSON export
+- **Timeline** — per-session trace/event waterfall, plus a scrub/playback session replay with token/cost overlays and a file-modification summary
+- **Metrics** — cost trends at day/week/month granularity, monthly spend projection, cost-per-success/per-file, retry rate, tool usage frequency, and prompt latency (degrades gracefully when an agent's beta tracing is off)
+- **Leaderboard** — agents/models ranked by cost-efficiency, speed, and success rate, with export and a Markdown summary report
 
 Screenshots below are from a real, live Claude Code session connected to local mode — not fabricated data.
 
@@ -66,7 +66,7 @@ terraform init
 terraform apply
 ```
 
-Provisions CloudWatch (log group + dashboard) and IAM by default; Lambda, DynamoDB, and X-Ray are optional, feature-flagged modules (see `terraform.tfvars.example`). No EC2/ECS/EKS is ever created.
+Provisions CloudWatch (log group + dashboard) and IAM by default; Lambda, DynamoDB, X-Ray, and CloudWatch alarms (`enable_alarms`: cost/token-usage metric alarms, a composite alarm, Logs Insights saved queries — no SNS/notification channel, by design) are optional, feature-flagged modules (see `terraform.tfvars.example`). No EC2/ECS/EKS is ever created.
 
 Then, one-time manual step (Terraform deliberately doesn't create this — see [ADR 0001, D12](docs/adr/0001-architecture-and-tech-stack.md#d12-no-aws_iam_access_key-resource--credentials-are-a-manual-step)):
 
@@ -100,6 +100,7 @@ Optional modules, only created if you flip their feature flag in `terraform.tfva
 | DynamoDB (`enable_dynamodb`) | Pay-per-request: $1.25/million writes, $0.25/million reads — negligible at demo scale |
 | Lambda (`enable_lambda`) | Free tier: 1M requests + 400,000 GB-seconds/month — effectively free here |
 | X-Ray (`enable_xray`) | Free tier: 100,000 traces recorded/month, 1,000,000 traces retrieved/month |
+| CloudWatch alarms + Logs Insights queries (`enable_alarms`) | Alarms: first 10/month free, ~$0.10/alarm/month after; Logs Insights saved queries are free to save, billed only per query run ($0.005/GB scanned) |
 
 Nothing here runs continuously that accrues cost while idle except the CloudWatch log group's storage (trivial at this scale) — there's no EC2/ECS/EKS and no always-on compute. Run `terraform destroy` after a demo session to remove everything, including that storage.
 
@@ -130,4 +131,8 @@ npm test
 
 ## Status: Complete
 
-All 7 success criteria from the original spec are met, verified against real infrastructure rather than just planned. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS both manually (`eu-central-1`) and through the fully gated CI/CD path (`deploy-aws.yml`, real manual-approval pause verified), with real data confirmed in CloudWatch, then torn down cleanly both ways. CI is confirmed green on GitHub Actions. See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.
+All 7 success criteria from the original spec are met, verified against real infrastructure rather than just planned. Local mode has a real Claude Code session connected and flowing through the pipeline — not a test payload. Cloud mode was deployed for real to AWS both manually (`eu-central-1`) and through the fully gated CI/CD path (`deploy-aws.yml`, real manual-approval pause verified), with real data confirmed in CloudWatch, then torn down cleanly both ways. CI is confirmed green on GitHub Actions.
+
+Beyond the original spec, the Tier 1 stretch-goal backlog (deeper cost/engineering metrics, local alerting, CSV/JSON/Markdown export, session replay, and optional CloudWatch alarms) is also built and shipped — see Milestone 11. The optional alarms path (`enable_alarms`) was verified the same way as the rest of cloud mode: deployed for real, confirmed live against AWS, then destroyed cleanly.
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for phase-by-phase status and [docs/MILESTONES.md](docs/MILESTONES.md) for the full build log.

@@ -11,6 +11,11 @@ log_retention_days = 14
 enable_lambda   = false
 enable_dynamodb = false
 enable_xray     = false
+enable_alarms   = false
+
+# Only used when enable_alarms = true.
+cost_alarm_threshold_usd = 10
+token_alarm_threshold    = 1000000
 
 tags = {
   Project   = "ai-coding-agent-observatory"

@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { getOverviewStats } from "../lib/queries";
+import { evaluateSessionAlerts } from "../lib/alerts";
 import { StatTile } from "../components/stat-tile";
 import { EmptyState } from "../components/empty-state";
 import { AgentBadge } from "../components/agent-badge";
 import { StatusBadge } from "../components/status-badge";
+import { AlertBadges } from "../components/alert-badges";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { formatDuration, formatNumber, formatRelativeTime, formatUsd } from "../lib/utils";
+import { STATUS_COLOR } from "../lib/chart-colors";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +20,28 @@ export default function OverviewPage() {
     return <EmptyState />;
   }
 
+  const sessionsWithAlerts = stats.recentSessions.filter((s) => evaluateSessionAlerts(s).length > 0);
+
   return (
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
         <p className="mt-1 text-sm text-muted-foreground">Fleet-wide activity across every connected agent.</p>
       </div>
+
+      {sessionsWithAlerts.length > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">
+          <AlertTriangle aria-hidden className="h-4 w-4 shrink-0" style={{ color: STATUS_COLOR.partial }} />
+          <span>
+            {sessionsWithAlerts.length} of your {stats.recentSessions.length} most recent sessions crossed an alert
+            threshold — see badges below or the{" "}
+            <Link href="/sessions" className="underline">
+              Sessions page
+            </Link>
+            .
+          </span>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Total sessions" value={formatNumber(stats.totalSessions)} />
@@ -62,6 +82,7 @@ export default function OverviewPage() {
               <div className="flex items-center gap-3">
                 <AgentBadge agentType={session.agentType} />
                 <span className="text-muted-foreground">{session.model ?? "unknown model"}</span>
+                <AlertBadges alerts={evaluateSessionAlerts(session)} />
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-muted-foreground">{formatDuration(Math.max(0, Date.parse(session.endedAt ?? session.startedAt) - Date.parse(session.startedAt)))}</span>

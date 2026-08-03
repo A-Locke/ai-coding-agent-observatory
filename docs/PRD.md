@@ -167,14 +167,21 @@ Adopted directly from the originating tech task; every criterion has been verifi
 
 ## 12. Out of Scope / Stretch Goals
 
-Tracked as Phase 12 (backlog) in the [Roadmap](ROADMAP.md), not built in the initial phases:
+Phase 10's Tier 1 backlog (Phases 11–15) is now built — see the [Roadmap](ROADMAP.md) and [Milestones](MILESTONES.md) for what shipped and how it was verified:
 
-- Session replay (step through a past session's tool calls/edits as a narrative).
-- Mean Time to Green (time from session start to passing tests/CI).
-- Deeper cost-efficiency metrics (cost per successful PR, cost per passing test suite).
+- ✅ Deeper cost & engineering metrics from existing data (Phase 11): cost trends, cost-per-success/per-file, retry rate, tool usage frequency, prompt latency from trace spans.
+- ✅ Local alerting on session thresholds (Phase 12).
+- ✅ Export to CSV/JSON/Markdown (Phase 13).
+- ✅ Session replay (step through a past session's tool calls/edits as a narrative) (Phase 14).
+- ✅ CloudWatch enhancements and AWS alarms, strictly within the optional cloud path (Phase 15).
+
+Remaining out of scope, still just backlog (Tier 2+, not planned):
+
 - Jaeger / Grafana Tempo export alongside CloudWatch.
 - Live telemetry (WebSocket/SSE push instead of polling) on the dashboard.
 - Formal adapters for additional agents beyond the initial three, if/when they ship native OTel support.
+- **Considered and explicitly declined as beyond portfolio scope:** git commit/branch enrichment, GitHub Actions telemetry, cross-system trace correlation, a unified agent+git+CI timeline, a plugin architecture for enrichers, deeper Lambda/DynamoDB/X-Ray analytics, and the long-term "Engineering Lifecycle Observability" vision (correlating agent sessions, git, CI/CD, deployments, and Kubernetes into one end-to-end trace). Each is real and buildable, just materially larger than this project's remit.
+- **Explicitly rejected, not just deprioritized:** synthetic/seeded demo data of any kind, for any reason — conflicts directly with the project's core real-data-only principle.
 
 ## 13. Glossary
 

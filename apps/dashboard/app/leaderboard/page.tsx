@@ -1,6 +1,7 @@
 import { getLeaderboard } from "../../lib/queries";
 import { EmptyState } from "../../components/empty-state";
 import { AgentBadge } from "../../components/agent-badge";
+import { ExportLinks } from "../../components/export-links";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { formatDuration, formatNumber, formatUsd } from "../../lib/utils";
 
@@ -15,9 +16,17 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Leaderboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Agents and models ranked by activity, cost, and success rate.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Leaderboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Agents and models ranked by activity, cost, and success rate.</p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <ExportLinks basePath="/api/export/leaderboard" />
+          <a href="/api/export/report" className="text-xs font-medium text-muted-foreground underline hover:text-foreground">
+            Download full summary report (Markdown)
+          </a>
+        </div>
       </div>
 
       <Table>

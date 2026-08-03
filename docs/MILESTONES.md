@@ -85,6 +85,18 @@ A running log of what shipped in each published commit. See [ROADMAP.md](ROADMAP
 - Deployed to **us-east-1**, not the `eu-central-1` used for the manual local deploys — the CI runner has no access to the local, gitignored `terraform.tfvars`, so it correctly fell back to the repo's committed default region. Worth knowing, not a bug.
 - Torn down through the same gated pipeline (`action=destroy`), closing the loop: dispatch → approval → real destroy. Verified live against AWS afterward — nothing left in either region, no orphaned IAM policies. The full apply→verify→destroy cycle now works end to end through CI/CD, not just via local Terraform CLI.
 
+## Milestone 11 — Tier 1 stretch goals shipped (Phases 11–15) (2026-08-03)
+
+- Evaluated the full "potential future improvements" list against the project's real-data-only and local-first principles; scoped down to Tier 1 only (zero new integrations, everything derivable from telemetry already stored) per explicit project-owner direction. Tier 2/3 items (git/CI correlation, plugin architecture, the "engineering lifecycle" vision) recorded as considered-and-declined in the PRD/Roadmap, not carried forward as phases.
+- **Phase 11 (cost & engineering metrics):** `lib/queries.ts` gained `getCostTrend` (day/week/month granularity), `getMonthlyCostProjection`, `getCostEfficiencyStats`, `getToolUsageFrequency`, `getLatencyStats`. Metrics page rebuilt with a granularity toggle and new stat tiles; latency section degrades gracefully with an explicit message when an agent's beta tracing isn't on.
+- **Phase 12 (local alerting):** `lib/alerts.ts` (env-overridable thresholds: retry count, total tokens, running duration, cost) evaluated at query time against existing session rows — no background job, no new storage. Surfaced via `alert-badges.tsx` on Sessions, session detail, and an Overview summary banner.
+- **Phase 13 (export):** `lib/export.ts` (CSV/Markdown serializers) plus `/api/export/{sessions,leaderboard,report}` routes, wired to download links on Sessions and Leaderboard — a pure serialization of data already on-screen, no separate export queries.
+- **Phase 14 (session replay):** `session-replay.tsx`, a client-side scrub/playback component over a session's existing span/event sequence, with running token/cost totals and a file-modification summary synced to playback position. Pure frontend — no new backend or ingest logic.
+- **Phase 15 (CloudWatch enhancements):** new `enable_alarms` Terraform flag (default `false`) adding `high_cost`/`high_token_usage` metric alarms, an `any_alert` composite alarm, and two Logs Insights saved queries — deliberately with no SNS/notification channel (ADR D16). Verified for real: `terraform apply` with the flag on created all 10 resources in `eu-central-1`, each confirmed live via `aws cloudwatch describe-alarms` / `aws logs describe-query-definitions` / `aws cloudwatch list-dashboards` / `aws iam list-users`, not just Terraform's own output.
+- A `terraform destroy` of that stack was interrupted mid-run (Ctrl+C) partway through. Rather than trust `terraform state list` (which still showed all 10 resources), live AWS was checked directly first — confirming the interrupt landed before any delete call had actually completed, so state and reality were still in sync. A freshly regenerated plan then destroyed cleanly, reconfirmed live afterward: no orphaned dashboard, alarms, queries, log group, or IAM user/policy.
+- Also found and fixed while building the tool-usage chart: `--primary` is a bare `H S% L%` CSS custom property, not a full color — using it directly as `fill`/`backgroundColor` (as the pre-existing `span-waterfall.tsx` did) silently renders nothing. Fixed in both places with `hsl(var(--primary))`.
+- Per explicit instruction, none of this touches ingestion or introduces any synthetic/seeded data — every new page and query reads only real telemetry already flowing from the connected Claude Code session.
+
 ## Project status: complete
 
 All 7 PRD success criteria are met, verified against real infrastructure rather than just planned:
@@ -94,4 +106,4 @@ All 7 PRD success criteria are met, verified against real infrastructure rather 
 - CI confirmed green on GitHub Actions across multiple pushes
 - The README shows real screenshots, not mockups
 
-Phase 10 (stretch goals: session replay, Mean Time to Green, deeper cost-efficiency metrics, Jaeger/Tempo export, live telemetry, additional agent adapters) remains explicitly out of scope for v1 — backlog, not a gap. See [ROADMAP.md](ROADMAP.md).
+Phase 10's Tier 1 backlog (Phases 11–15: cost/engineering metrics, local alerting, export, session replay, CloudWatch alarms) shipped in Milestone 11. Remaining stretch goals (Jaeger/Tempo export, live telemetry, additional agent adapters) stay explicitly out of scope for this project — backlog, not a gap. See [ROADMAP.md](ROADMAP.md).

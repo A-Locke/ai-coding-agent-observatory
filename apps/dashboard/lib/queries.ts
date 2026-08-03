@@ -1,4 +1,12 @@
-import { calculateCostUsd, type AgentSession, type AgentType, type LeaderboardRow, type SessionStatus, type SpanRecord } from "@observatory/shared";
+import {
+  calculateCostUsd,
+  CLAUDE_CODE_SPAN,
+  type AgentSession,
+  type AgentType,
+  type LeaderboardRow,
+  type SessionStatus,
+  type SpanRecord,
+} from "@observatory/shared";
 import { getDb } from "./db";
 
 const RUNNING_THRESHOLD_MS = 2 * 60 * 1000;
@@ -187,21 +195,53 @@ export function getSessionEvents(sessionId: string): EventRowOut[] {
   }));
 }
 
+export interface SessionMetricPoint {
+  id: number;
+  name: string;
+  value: number;
+  unit: string;
+  recordedAt: string;
+}
+
+// unit === "USD" / "tokens" identifies cost/token metrics generically across
+// agents, without hardcoding each vendor's specific metric name.
+export function getSessionMetrics(sessionId: string): SessionMetricPoint[] {
+  const db = getDb();
+  const rows = db
+    .prepare("SELECT id, name, value, unit, recorded_at FROM metrics WHERE session_id = @sessionId ORDER BY recorded_at ASC")
+    .all({ sessionId }) as unknown as { id: number; name: string; value: number; unit: string; recorded_at: string }[];
+  return rows.map((row) => ({ id: row.id, name: row.name, value: row.value, unit: row.unit, recordedAt: row.recorded_at }));
+}
+
 export interface CostByDayPoint {
   day: string;
   agentType: AgentType;
   costUsd: number;
 }
 
-export function getCostByDay(): CostByDayPoint[] {
+export type CostTrendGranularity = "day" | "week" | "month";
+
+export interface CostTrendPoint {
+  bucket: string;
+  agentType: AgentType;
+  costUsd: number;
+}
+
+const BUCKET_EXPR: Record<CostTrendGranularity, string> = {
+  day: "substr(started_at, 1, 10)",
+  week: "strftime('%Y-W%W', started_at)",
+  month: "substr(started_at, 1, 7)",
+};
+
+export function getCostTrend(granularity: CostTrendGranularity = "day"): CostTrendPoint[] {
   const db = getDb();
   const rows = db
     .prepare(
-      `SELECT substr(started_at, 1, 10) as day, agent_type, model, total_cost_usd, cost_is_estimated, input_tokens, output_tokens
+      `SELECT ${BUCKET_EXPR[granularity]} as bucket, agent_type, model, total_cost_usd, cost_is_estimated, input_tokens, output_tokens
        FROM sessions`
     )
     .all() as unknown as {
-    day: string;
+    bucket: string;
     agent_type: AgentType;
     model: string | null;
     total_cost_usd: number;
@@ -210,17 +250,145 @@ export function getCostByDay(): CostByDayPoint[] {
     output_tokens: number;
   }[];
 
-  const byKey = new Map<string, CostByDayPoint>();
+  const byKey = new Map<string, CostTrendPoint>();
   for (const row of rows) {
     const cost = row.cost_is_estimated
       ? calculateCostUsd(row.model ?? "", row.input_tokens, row.output_tokens)
       : row.total_cost_usd;
-    const key = `${row.day}:${row.agent_type}`;
+    const key = `${row.bucket}:${row.agent_type}`;
     const existing = byKey.get(key);
     if (existing) existing.costUsd += cost;
-    else byKey.set(key, { day: row.day, agentType: row.agent_type, costUsd: cost });
+    else byKey.set(key, { bucket: row.bucket, agentType: row.agent_type, costUsd: cost });
   }
-  return Array.from(byKey.values()).sort((a, b) => a.day.localeCompare(b.day));
+  return Array.from(byKey.values()).sort((a, b) => a.bucket.localeCompare(b.bucket));
+}
+
+export function getCostByDay(): CostByDayPoint[] {
+  return getCostTrend("day").map((p) => ({ day: p.bucket, agentType: p.agentType, costUsd: p.costUsd }));
+}
+
+export interface MonthlyCostProjection {
+  monthToDateUsd: number;
+  daysElapsed: number;
+  daysInMonth: number;
+  projectedMonthUsd: number;
+}
+
+// Naive linear extrapolation (month-to-date / days elapsed * days in month) --
+// deliberately simple, not a forecasting model. Good enough to answer "am I
+// on track to blow the budget this month," not for precise prediction.
+export function getMonthlyCostProjection(): MonthlyCostProjection {
+  const now = new Date();
+  const monthPrefix = now.toISOString().slice(0, 7);
+  const daysInMonth = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0).getUTCDate();
+  const daysElapsed = now.getUTCDate();
+
+  const trend = getCostTrend("month").filter((p) => p.bucket === monthPrefix);
+  const monthToDateUsd = trend.reduce((sum, p) => sum + p.costUsd, 0);
+  const projectedMonthUsd = daysElapsed > 0 ? (monthToDateUsd / daysElapsed) * daysInMonth : 0;
+
+  return { monthToDateUsd, daysElapsed, daysInMonth, projectedMonthUsd };
+}
+
+export interface CostEfficiencyStats {
+  costPerSuccessUsd: number;
+  costPerFileEditedUsd: number;
+  retryRate: number;
+}
+
+export function getCostEfficiencyStats(): CostEfficiencyStats {
+  const db = getDb();
+  const rows = db.prepare("SELECT * FROM sessions").all() as unknown as SessionRow[];
+  const sessions = rows.map(mapSessionRow);
+
+  const totalCost = sessions.reduce((sum, s) => sum + s.totalCostUsd, 0);
+  const successCount = sessions.filter((s) => s.status === "success").length;
+  const totalFilesEdited = sessions.reduce((sum, s) => sum + s.filesEditedCount, 0);
+  const totalRetries = sessions.reduce((sum, s) => sum + s.retryCount, 0);
+
+  return {
+    costPerSuccessUsd: successCount > 0 ? totalCost / successCount : 0,
+    costPerFileEditedUsd: totalFilesEdited > 0 ? totalCost / totalFilesEdited : 0,
+    retryRate: sessions.length > 0 ? totalRetries / sessions.length : 0,
+  };
+}
+
+export interface ToolUsagePoint {
+  toolName: string;
+  count: number;
+  successCount: number;
+}
+
+// Claude Code uses "tool_name", Gemini CLI uses "function_name" for the same
+// concept on their respective tool-call events; Codex CLI's log schema isn't
+// published yet (ADR D6) so it simply won't contribute rows here.
+export function getToolUsageFrequency(limit = 10): ToolUsagePoint[] {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT
+         COALESCE(json_extract(attributes_json, '$.tool_name'), json_extract(attributes_json, '$.function_name')) as tool_name,
+         COUNT(*) as count,
+         SUM(CASE WHEN json_extract(attributes_json, '$.success') = 1 THEN 1 ELSE 0 END) as success_count
+       FROM events
+       WHERE COALESCE(json_extract(attributes_json, '$.tool_name'), json_extract(attributes_json, '$.function_name')) IS NOT NULL
+       GROUP BY tool_name
+       ORDER BY count DESC
+       LIMIT @limit`
+    )
+    .all({ limit }) as unknown as { tool_name: string; count: number; success_count: number }[];
+  return rows.map((r) => ({ toolName: r.tool_name, count: r.count, successCount: r.success_count }));
+}
+
+export interface LatencyStats {
+  hasTraceData: boolean;
+  avgLlmRequestMs: number | null;
+  slowestSession: { sessionId: string; traceSpanMs: number } | null;
+}
+
+// "Critical path" here means the simplest honest thing derivable from spans:
+// a session's full trace wall-clock span (latest span end minus earliest
+// span start). Not a weighted longest-path-through-the-DAG algorithm -- with
+// only Claude Code's beta tracing populated in practice, that precision
+// wouldn't be worth the complexity. Only ever computed from real trace data;
+// returns hasTraceData: false when none exists, never a fabricated number.
+export function getLatencyStats(): LatencyStats {
+  const db = getDb();
+
+  const totalSpans = db.prepare("SELECT COUNT(*) as c FROM spans").get() as { c: number };
+  const hasTraceData = totalSpans.c > 0;
+
+  const llmRows = db
+    .prepare("SELECT duration_ms FROM spans WHERE name = @name")
+    .all({ name: CLAUDE_CODE_SPAN.LLM_REQUEST }) as unknown as { duration_ms: number }[];
+  const avgLlmRequestMs = llmRows.length > 0 ? llmRows.reduce((sum, r) => sum + r.duration_ms, 0) / llmRows.length : null;
+
+  const spanRows = db
+    .prepare("SELECT session_id, start_time_unix_nano, end_time_unix_nano FROM spans WHERE session_id IS NOT NULL")
+    .all() as unknown as { session_id: string; start_time_unix_nano: string; end_time_unix_nano: string }[];
+
+  const bounds = new Map<string, { min: bigint; max: bigint }>();
+  for (const row of spanRows) {
+    const start = BigInt(row.start_time_unix_nano);
+    const end = BigInt(row.end_time_unix_nano);
+    const existing = bounds.get(row.session_id);
+    if (!existing) {
+      bounds.set(row.session_id, { min: start, max: end });
+    } else {
+      if (start < existing.min) existing.min = start;
+      if (end > existing.max) existing.max = end;
+    }
+  }
+
+  let slowestSession: LatencyStats["slowestSession"] = null;
+  for (const [sessionId, { min, max }] of bounds) {
+    const traceSpanMs = Number(max - min) / 1_000_000;
+    if (!slowestSession || traceSpanMs > slowestSession.traceSpanMs) {
+      slowestSession = { sessionId, traceSpanMs };
+    }
+  }
+
+  return { hasTraceData, avgLlmRequestMs, slowestSession };
 }
 
 export function getTokensByAgent(): { agentType: AgentType; inputTokens: number; outputTokens: number }[] {

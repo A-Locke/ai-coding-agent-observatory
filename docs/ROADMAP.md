@@ -103,11 +103,68 @@ Goal: make the finished repo easy to evaluate at a glance.
 - [x] Architecture diagram (mermaid) in the README — one unified diagram covering both local flow and the optional cloud branch, rather than two separate diagrams; covers the same ground as the PRD's local/cloud ASCII diagrams
 - [x] Sweep for TODOs, dead code, and stale comments — done in Milestone 9. No TODO/FIXME/HACK markers existed anywhere. Found and removed real dead code: 5 unused `KNOWN_*` exports, the entire unused `GEN_AI_ATTR`/`GEN_AI_METRIC` module, and the unused `Button`/`Badge` UI components (plus their now-unused `class-variance-authority` dependency). Found and fixed a stale ADR (D4 described `gen_ai.*` attribute parsing that was never actually implemented) and two magic-string call sites that should have used the shared constants they were written to replace. Also fixed a `tsconfig.json` deprecation (`moduleResolution: "node"` → `"NodeNext"`, TypeScript 5.9 is phasing out the whole classic-Node-resolution family by 7.0).
 
-## Phase 10 — Stretch Goals 🧊 (backlog, not planned for v1)
+## Phase 10 — Stretch Goals 🧊 (Tier 1 done, Tier 2/3 backlog)
 
-- [ ] Session replay (step through a past session's tool calls/edits)
-- [ ] Mean Time to Green
-- [ ] Deeper cost-efficiency metrics (cost per successful PR / passing test suite)
-- [ ] Jaeger / Grafana Tempo export alongside CloudWatch
-- [ ] Live telemetry (WebSocket/SSE) instead of polling
-- [ ] Additional agent adapters as new agents ship native OTel support
+Proposed 2026-08-02, evaluated against the project's real-data-only and local-first principles. **Scope decision: Tier 1 only** — everything derivable from telemetry already stored, with zero new integrations or new real-world data sources. Tier 2/3 items (git integration, CI telemetry, cross-system correlation, plugin architecture, the "engineering lifecycle" north star) were evaluated and explicitly declined as beyond what a portfolio project needs — noted briefly below so they aren't re-proposed without this context, not carried forward as phases.
+
+- [x] Cost & engineering metrics from existing data (Phase 11)
+- [x] Local alerting (Phase 12)
+- [x] Export support — CSV/JSON/Markdown (Phase 13)
+- [x] Session replay UI (Phase 14)
+- [x] CloudWatch enhancements + AWS alarms, optional path only (Phase 15)
+- [ ] Jaeger / Grafana Tempo export alongside CloudWatch (not planned — Tier 2+)
+- [ ] Live telemetry (WebSocket/SSE) instead of polling (not planned — Tier 2+)
+- [ ] Additional agent adapters as new agents ship native OTel support (not planned — Tier 2+)
+
+**Considered and declined (beyond portfolio scope):** git commit/branch enrichment, GitHub Actions telemetry, cross-system trace correlation, a unified agent+git+CI timeline, a plugin architecture for enrichers, deeper Lambda/DynamoDB/X-Ray analytics, and the long-term "Engineering Lifecycle Observability" vision (correlating agent sessions, git, CI/CD, deployments, and Kubernetes into one end-to-end trace). Each is real, buildable, and consistent with the project's principles — they just take this from a portfolio piece into a materially larger platform. Not reflected as phases below.
+
+**Explicitly rejected, not just deprioritized:** sample datasets / demo mode / seeded telemetry / automatic dashboard population. Directly contradicts the project's core "no synthetic data" principle (explicit project-owner directive, 2026-08-02) — a hard no, not a priority call.
+
+### Phase 11 — Cost & Engineering Metrics from Existing Data ✅
+
+Goal: everything derivable from data already ingested, no new telemetry source required.
+
+- [x] Metrics page: weekly/monthly cost rollups (currently daily only), a simple monthly-spend projection from recent trend
+- [x] Fleet-wide cost-per-success and cost-per-file-edited views (Leaderboard already computes `costPerSuccessUsd` per model; surface it fleet-wide too)
+- [x] Retry rate and tool-usage-frequency aggregate queries + charts (data already in `sessions.retry_count` / `events`)
+- [x] Average prompt latency and longest critical path, computed from the `spans` table's parent/child structure — only populated when an agent's beta tracing is on; page should degrade gracefully (and say why) when it isn't
+
+Acceptance: no new ingest code, no new OTLP data required — every number here must be traceable to a column or event already being stored today. **Met** — `getCostTrend`/`getMonthlyCostProjection`/`getCostEfficiencyStats`/`getToolUsageFrequency`/`getLatencyStats` in `lib/queries.ts`, all reading existing tables. "Longest critical path" is documented as the slowest single span by wall-clock duration, not a weighted critical-path graph algorithm — a deliberate scope call, not an oversight.
+
+### Phase 12 — Local Alerting ✅
+
+Goal: threshold-based flags on session data, surfaced in the UI. No new infrastructure.
+
+- [x] Configurable thresholds (excessive retries, high token consumption, long-running session, unusually expensive session)
+- [x] Dashboard badge/banner when a session crosses a threshold — reuses the existing `StatusBadge`-style component pattern
+
+Acceptance: rule evaluation happens at query time against existing session rows; no background job, no new storage. **Met** — `lib/alerts.ts` (`ALERT_THRESHOLDS`, env-overridable, `evaluateSessionAlerts`), rendered via `alert-badges.tsx` on Sessions, session detail, and an Overview summary banner.
+
+### Phase 13 — Export Support ✅
+
+Goal: let the data leave the dashboard for offline analysis.
+
+- [x] API routes + UI buttons to export sessions/leaderboard/metrics query results as CSV, JSON, and a Markdown summary report
+- [x] Explicitly not doing Parquet or a second OTel-JSON export format unless real demand shows up — no library dependency added speculatively
+
+Acceptance: exports are a serialization of the exact data already shown on-screen — no separate export-specific query logic to maintain. **Met** — `lib/export.ts` (`toCsv`/`toMarkdownTable`) plus `/api/export/{sessions,leaderboard,report}` routes, wired to download links on Sessions and Leaderboard.
+
+### Phase 14 — Session Replay UI ✅
+
+Goal: a richer way to review a past session, built entirely on data the Timeline page already has.
+
+- [x] Interactive scrub/playback over the stored span/event sequence
+- [x] Token-usage and cost overlays synced to playback position
+- [x] File-modification summary view
+
+Acceptance: pure frontend work — no new backend, no new ingest logic. If it needs new data to be good, that's a sign it's not ready yet. **Met** — `components/session-replay.tsx` (client-side scrub/playback), `getSessionMetrics` reuses existing session-detail data; rendered as a new "Replay" section on the session detail page.
+
+### Phase 15 — CloudWatch Enhancements & AWS Alerting (optional path only) ✅
+
+Goal: richer AWS-side observability, strictly within the existing optional/off-by-default cloud module.
+
+- [x] `aws_cloudwatch_metric_alarm` Terraform resources on metrics already exported via EMF (excessive cost, high token volume) — new optional flag, off by default
+- [x] CloudWatch Logs Insights saved queries added to the existing dashboard module
+- [x] Composite alarms and metric filters, evaluated for real value vs. added Terraform surface area before building
+
+Acceptance: zero impact on local mode; no new always-on AWS resource; every addition stays behind a feature flag consistent with the existing `enable_lambda`/`enable_dynamodb`/`enable_xray` pattern. **Met** — `enable_alarms` flag (default `false`) in `modules/cloudwatch/alarms.tf`: `high_cost`/`high_token_usage` metric alarms, an `any_alert` composite alarm, and two Logs Insights saved queries. No SNS/notification channel by design (see ADR D16). Verified live: `terraform apply` with `enable_alarms = true` created all 10 resources correctly in `eu-central-1`, each confirmed via direct `aws cloudwatch`/`aws logs` calls, then `terraform destroy` (after an interrupted first attempt correctly left state and live AWS in sync — no drift, verified before regenerating the plan) removed everything cleanly.

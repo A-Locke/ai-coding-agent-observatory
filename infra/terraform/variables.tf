@@ -34,6 +34,24 @@ variable "enable_xray" {
   default     = false
 }
 
+variable "enable_alarms" {
+  description = "Provision CloudWatch alarms (cost, token usage, a composite alarm) and Logs Insights saved queries. Off by default. No SNS/notification channel -- see ADR 0001."
+  type        = bool
+  default     = false
+}
+
+variable "cost_alarm_threshold_usd" {
+  description = "Hourly cost.usage sum that trips the high-cost alarm (only used when enable_alarms = true)."
+  type        = number
+  default     = 10
+}
+
+variable "token_alarm_threshold" {
+  description = "Hourly token.usage sum that trips the high-token-usage alarm (only used when enable_alarms = true)."
+  type        = number
+  default     = 1000000
+}
+
 variable "tags" {
   description = "Tags applied to every resource this project creates."
   type        = map(string)

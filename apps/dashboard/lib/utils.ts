@@ -24,6 +24,16 @@ export function formatDuration(ms: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
+const ATTRIBUTE_SUMMARY_KEYS = ["tool_name", "model", "function_name", "success", "duration_ms", "full_command"];
+
+export function summarizeAttributes(attributes: Record<string, unknown>): string {
+  const parts: string[] = [];
+  for (const key of ATTRIBUTE_SUMMARY_KEYS) {
+    if (attributes[key] !== undefined) parts.push(`${key}=${String(attributes[key])}`);
+  }
+  return parts.join("  ");
+}
+
 export function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();

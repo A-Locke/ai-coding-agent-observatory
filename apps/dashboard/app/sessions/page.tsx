@@ -1,9 +1,12 @@
 import Link from "next/link";
 import type { AgentType } from "@observatory/shared";
 import { listSessions } from "../../lib/queries";
+import { evaluateSessionAlerts } from "../../lib/alerts";
 import { EmptyState } from "../../components/empty-state";
 import { AgentBadge } from "../../components/agent-badge";
 import { StatusBadge } from "../../components/status-badge";
+import { AlertBadges } from "../../components/alert-badges";
+import { ExportLinks } from "../../components/export-links";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { formatNumber, formatRelativeTime, formatUsd } from "../../lib/utils";
 
@@ -23,9 +26,12 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Every agent session observed by the collector.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Sessions</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Every agent session observed by the collector.</p>
+        </div>
+        <ExportLinks basePath="/api/export/sessions" />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -51,6 +57,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
               <TableHead>Agent</TableHead>
               <TableHead>Model</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Alerts</TableHead>
               <TableHead className="text-right">Cost</TableHead>
               <TableHead className="text-right">Tokens</TableHead>
               <TableHead className="text-right">Tools</TableHead>
@@ -68,6 +75,9 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
                 <TableCell className="text-muted-foreground">{session.model ?? "—"}</TableCell>
                 <TableCell>
                   <StatusBadge status={session.status} />
+                </TableCell>
+                <TableCell>
+                  <AlertBadges alerts={evaluateSessionAlerts(session)} />
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatUsd(session.totalCostUsd)}

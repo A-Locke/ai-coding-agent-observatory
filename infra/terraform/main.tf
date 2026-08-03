@@ -3,10 +3,13 @@ provider "aws" {
 }
 
 module "cloudwatch" {
-  source             = "./modules/cloudwatch"
-  project_name       = var.project_name
-  log_retention_days = var.log_retention_days
-  tags               = var.tags
+  source                   = "./modules/cloudwatch"
+  project_name             = var.project_name
+  log_retention_days       = var.log_retention_days
+  tags                     = var.tags
+  enable_alarms            = var.enable_alarms
+  cost_alarm_threshold_usd = var.cost_alarm_threshold_usd
+  token_alarm_threshold    = var.token_alarm_threshold
 }
 
 module "iam" {

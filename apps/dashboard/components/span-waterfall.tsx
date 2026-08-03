@@ -27,7 +27,7 @@ export function SpanWaterfall({ spans }: { spans: SpanRecord[] }) {
         const leftPct = Math.max(0, (offsetNs / totalNs) * 100);
         const widthPct = Math.max(0.5, (span.durationMs * 1_000_000 / totalNs) * 100);
         const depth = depthOf(span, byId);
-        const barColor = span.statusCode === "ERROR" ? STATUS_COLOR.failed : "var(--primary)";
+        const barColor = span.statusCode === "ERROR" ? STATUS_COLOR.failed : "hsl(var(--primary))";
         return (
           <div key={span.id} className="flex items-center gap-3 py-1 text-xs">
             <span

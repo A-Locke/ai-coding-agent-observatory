@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
-import { getSession, getSessionEvents, getSessionSpans } from "../../../lib/queries";
+import { getSession, getSessionEvents, getSessionMetrics, getSessionSpans } from "../../../lib/queries";
+import { evaluateSessionAlerts } from "../../../lib/alerts";
 import { AgentBadge } from "../../../components/agent-badge";
 import { StatusBadge } from "../../../components/status-badge";
+import { AlertBadges } from "../../../components/alert-badges";
 import { StatTile } from "../../../components/stat-tile";
 import { SpanWaterfall } from "../../../components/span-waterfall";
 import { EventList } from "../../../components/event-list";
-import { formatNumber, formatUsd } from "../../../lib/utils";
+import { SessionReplay, type ReplayMetricPoint, type ReplayStep } from "../../../components/session-replay";
+import { formatNumber, formatUsd, summarizeAttributes } from "../../../lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,31 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   const spans = getSessionSpans(id);
   const events = getSessionEvents(id);
+  const metrics = getSessionMetrics(id);
+
+  const replaySteps: ReplayStep[] =
+    spans.length > 0
+      ? spans.map((s) => ({
+          key: s.id,
+          kind: "span" as const,
+          label: s.name,
+          detail: summarizeAttributes(s.attributes),
+          timestampMs: Number(BigInt(s.startTimeUnixNano) / 1_000_000n),
+        }))
+      : events.map((e) => ({
+          key: String(e.id),
+          kind: "event" as const,
+          label: e.name,
+          detail: summarizeAttributes(e.attributes),
+          timestampMs: Date.parse(e.occurredAt),
+        }));
+
+  const replayMetrics: ReplayMetricPoint[] = metrics.map((m) => ({
+    name: m.name,
+    value: m.value,
+    unit: m.unit,
+    timestampMs: Date.parse(m.recordedAt),
+  }));
 
   return (
     <div className="flex flex-col gap-8">
@@ -27,6 +55,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           </div>
           <h1 className="mt-2 text-xl font-semibold tracking-tight">{session.model ?? "Unknown model"}</h1>
           <p className="text-xs text-muted-foreground">Session {session.id}</p>
+          <div className="mt-2">
+            <AlertBadges alerts={evaluateSessionAlerts(session)} />
+          </div>
         </div>
       </div>
 
@@ -57,6 +88,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <p className="text-sm text-muted-foreground">No spans or events recorded for this session yet.</p>
         )}
       </div>
+
+      {replaySteps.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">Replay</h2>
+          <SessionReplay steps={replaySteps} metrics={replayMetrics} />
+        </div>
+      )}
     </div>
   );
 }
